@@ -192,8 +192,7 @@ else
         else
             echo -e "${RED}✗ Authentication failed. Please check your token and try again.${NC}"
         fi
-    done
-
+        
     print_step 4 "Preparing for ngrok tunnel"
     # Kill any existing ngrok processes
     pkill -f ngrok || true
