@@ -168,31 +168,24 @@ else
     rm "ngrok-v3-stable-$OS-$NGROK_ARCH.tgz"
     check_success
 
-    print_step 3 "Authenticating ngrok"
-    if [ -z "$NGROK_AUTH_TOKEN" ]; then
-        echo -e "${RED}No NGROK_AUTH_TOKEN environment variable set. Exiting.${NC}"
-        exit 1
-    fi
+print_step 3 "Authenticating ngrok"
 
-    ngrok authtoken "$NGROK_AUTH_TOKEN"
-    if [ $? -eq 0 ]; then
-        echo -e "${GREEN}✓ Successfully authenticated ngrok!${NC}"
-    else
-        echo -e "${RED}✗ Authentication failed. Please check your token and try again.${NC}"
-        exit 1
-    fi
-        # Ensure any previous ngrok processes are killed before authentication
-        pkill -f ngrok || true
-        sleep 2
+# Directly set the ngrok token in the script (replace with your token)
+NGROK_TOKEN="2vIktq0KK4TBzkfFdk9zBMLtvVR_47EmaHeJJuUcwsmhEvRmF"
 
-        ngrok authtoken "$NGROK_TOKEN"
-        if [ $? -eq 0 ]; then
-            echo -e "${GREEN}✓ Successfully authenticated ngrok!${NC}"
-            break
-        else
-            echo -e "${RED}✗ Authentication failed. Please check your token and try again.${NC}"
-        fi
-        
+# Ensure any previous ngrok processes are killed before authentication
+pkill -f ngrok || true
+sleep 2
+
+# Authenticate ngrok using the provided token
+ngrok authtoken "$NGROK_TOKEN"
+if [ $? -eq 0 ]; then
+    echo -e "${GREEN}✓ Successfully authenticated ngrok!${NC}"
+else
+    echo -e "${RED}✗ Authentication failed. Please check your token and try again.${NC}"
+    exit 1
+fi
+
     print_step 4 "Preparing for ngrok tunnel"
     # Kill any existing ngrok processes
     pkill -f ngrok || true
