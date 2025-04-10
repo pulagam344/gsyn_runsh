@@ -112,7 +112,7 @@ else
 
     # Start the development server in the background
     echo -e "\n${CYAN}Starting the development server...${NC}"
-    npm run dev > server.log 2>&1 &
+    PORT=3001 npm run dev > server.log 2>&1 &
     SERVER_PID=$!
     MAX_WAIT=60
     counter=0
