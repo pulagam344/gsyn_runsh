@@ -39,7 +39,7 @@ PUB_MULTI_ADDRS=${PUB_MULTI_ADDRS:-$DEFAULT_PUB_MULTI_ADDRS}
 DEFAULT_PEER_MULTI_ADDRS="/ip4/38.101.215.13/tcp/30002/p2p/QmQ2gEXoPJg6iMBSUFWGzAabS2VhnzuS782Y637hGjfsRJ"
 PEER_MULTI_ADDRS=${PEER_MULTI_ADDRS:-$DEFAULT_PEER_MULTI_ADDRS}
 
-DEFAULT_HOST_MULTI_ADDRS="/ip4/0.0.0.0/tcp/38330"
+DEFAULT_HOST_MULTI_ADDRS="/ip4/0.0.0.0/tcp/38331"
 HOST_MULTI_ADDRS=${HOST_MULTI_ADDRS:-$DEFAULT_HOST_MULTI_ADDRS}
 
 DEFAULT_IDENTITY_PATH="$ROOT"/swarm.pem
@@ -62,21 +62,13 @@ if [ -f "modal-login/temp-data/userData.json" ]; then
 
     # Start the development server in the background
     echo -e "\n${CYAN}Starting the development server...${NC}"
-    npm run dev > server.log 2>&1 &
+    npm run dev -- -p 3001 > server.log 2>&1 &
     SERVER_PID=$!
     MAX_WAIT=60
     counter=0
-    while [ $counter -lt $MAX_WAIT ]; do
-        if grep -q "Local:        http://localhost:" server.log; then
-            PORT=$(grep "Local:        http://localhost:" server.log | sed -n 's/.*http:\/\/localhost:\([0-9]*\).*/\1/p')
-            if [ -n "$PORT" ]; then
-                echo -e "${GREEN}Server is running successfully on port $PORT\n${NC}"
-                break
-            fi
-        fi
-        sleep 1
-        counter=$((counter + 1))
-    done
+    PORT=3001
+    echo -e "${GREEN}Server is expected to run on port $PORT${NC}"
+
 
     if [ $counter -eq $MAX_WAIT ]; then
         echo -e "${RED}Timeout waiting for server to start.${NC}"
@@ -112,21 +104,12 @@ else
 
     # Start the development server in the background
     echo -e "\n${CYAN}Starting the development server...${NC}"
-    PORT=3000 npm run dev > server.log 2>&1 &
+    npm run dev -- -p 3001 > server.log 2>&1 &
     SERVER_PID=$!
     MAX_WAIT=60
     counter=0
-    while [ $counter -lt $MAX_WAIT ]; do
-        if grep -q "Local:        http://localhost:" server.log; then
-            PORT=$(grep "Local:        http://localhost:" server.log | sed -n 's/.*http:\/\/localhost:\([0-9]*\).*/\1/p')
-            if [ -n "$PORT" ]; then
-                echo -e "${GREEN}Server is running successfully on port $PORT.${NC}"
-                break
-            fi
-        fi
-        sleep 1
-        counter=$((counter + 1))
-    done
+    PORT=3001
+    echo -e "${GREEN}Server is expected to run on port $PORT${NC}"
 
     if [ $counter -eq $MAX_WAIT ]; then
         echo -e "${RED}Timeout waiting for server to start.${NC}"
