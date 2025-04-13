@@ -62,7 +62,7 @@ if [ -f "modal-login/temp-data/userData.json" ]; then
 
     # Start the development server in the background
     echo -e "\n${CYAN}Starting the development server...${NC}"
-    npm run dev -- -p 3001 > server.log 2>&1 &
+    npm run dev -- -p 3000 > server.log 2>&1 &
     SERVER_PID=$!
     MAX_WAIT=60
     counter=0
@@ -104,7 +104,7 @@ else
 
     # Start the development server in the background
     echo -e "\n${CYAN}Starting the development server...${NC}"
-    npm run dev -- -p 3001 > server.log 2>&1 &
+    npm run dev -- -p 3000 > server.log 2>&1 &
     SERVER_PID=$!
     MAX_WAIT=60
     counter=0
