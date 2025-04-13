@@ -66,7 +66,7 @@ if [ -f "modal-login/temp-data/userData.json" ]; then
     SERVER_PID=$!
     MAX_WAIT=60
     counter=0
-    PORT=3001
+    PORT=3000
     echo -e "${GREEN}Server is expected to run on port $PORT${NC}"
 
 
@@ -108,7 +108,7 @@ else
     SERVER_PID=$!
     MAX_WAIT=60
     counter=0
-    PORT=3001
+    PORT=3000
     echo -e "${GREEN}Server is expected to run on port $PORT${NC}"
 
     if [ $counter -eq $MAX_WAIT ]; then
