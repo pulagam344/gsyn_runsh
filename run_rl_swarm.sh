@@ -319,7 +319,7 @@ if [ -n "${HF_TOKEN}" ]; then
     HUGGINGFACE_ACCESS_TOKEN=${HF_TOKEN}
 else
     # Directly set to "None" without prompting
-    HUGGINGFACE_ACCESS_TOKEN="None"
+    HUGGINGFACE_ACCESS_TOKEN="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"
 fi
 
 echo -e "\n${GREEN}${BOLD}Good luck in the swarm! Your training session is about to begin.\n${NC}"
