@@ -299,8 +299,7 @@ fi
 
 # Install Python requirements
 echo -e "${CYAN}Installing required Python packages...${NC}"
-pip install -r "$ROOT"/requirements-hivemind.txt > /dev/null
-pip install -r "$ROOT"/requirements.txt > /dev/null
+pip install -r "$ROOT"/requirements-gpu.txt > /dev/null
 
 # Determine config path based on hardware
 if ! which nvidia-smi; then
@@ -308,7 +307,7 @@ if ! which nvidia-smi; then
 elif [ -n "$CPU_ONLY" ]; then
     CONFIG_PATH="$ROOT/hivemind_exp/configs/mac/grpo-qwen-2.5-0.5b-deepseek-r1.yaml"
 else
-    pip install -r "$ROOT"/requirements_gpu.txt > /dev/null
+    pip install -r "$ROOT"/requirements-gpu.txt > /dev/null
     CONFIG_PATH="$ROOT/hivemind_exp/configs/gpu/grpo-qwen-2.5-0.5b-deepseek-r1.yaml"
 fi
 
