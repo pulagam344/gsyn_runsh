@@ -1,343 +1,190 @@
 #!/bin/bash
 
+set -euo pipefail
+
+# ========== Configuration ==========
+
 ROOT=$PWD
+DEFAULT_PUB_MULTI_ADDRS=""
+DEFAULT_PEER_MULTI_ADDRS="/ip4/38.101.215.13/tcp/30002/p2p/QmQ2gEXoPJg6iMBSUFWGzAabS2VhnzuS782Y637hGjfsRJ"
+DEFAULT_HOST_MULTI_ADDRS="/ip4/0.0.0.0/tcp/38331"
+DEFAULT_IDENTITY_PATH="$ROOT/swarm.pem"
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-PURPLE='\033[0;95m'
-BLUE='\033[0;94m'
-YELLOW='\033[0;33m'
-CYAN='\033[0;36m'
-BOLD='\033[1m'
-NC='\033[0m'
+SMALL_SWARM_CONTRACT="0x69C6e1D608ec64885E7b185d39b04B491a71768C"
+BIG_SWARM_CONTRACT="0x6947c6E196a48B77eFa9331EC1E3e45f3Ee5Fd58"
 
-print_step() {
-    echo -e "\n${CYAN}${BOLD}Step $1: $2${NC}"
-}
-
-check_success() {
-    if [ $? -eq 0 ]; then
-        echo -e "${GREEN}✓ Success!${NC}"
-    else
-        echo -e "${RED}✗ Failed! Please check errors above and try again.${NC}"
-        exit 1
-    fi
-}
-
-# Export environment variables
-export PUB_MULTI_ADDRS
-export PEER_MULTI_ADDRS
-export HOST_MULTI_ADDRS
-export IDENTITY_PATH
-export ORG_ID
+export PUB_MULTI_ADDRS=${PUB_MULTI_ADDRS:-$DEFAULT_PUB_MULTI_ADDRS}
+export PEER_MULTI_ADDRS=${PEER_MULTI_ADDRS:-$DEFAULT_PEER_MULTI_ADDRS}
+export HOST_MULTI_ADDRS=${HOST_MULTI_ADDRS:-$DEFAULT_HOST_MULTI_ADDRS}
+export IDENTITY_PATH=${IDENTITY_PATH:-$DEFAULT_IDENTITY_PATH}
 export HF_HUB_DOWNLOAD_TIMEOUT=120
 
-# Set default values for environment variables if not already defined
-DEFAULT_PUB_MULTI_ADDRS=""
-PUB_MULTI_ADDRS=${PUB_MULTI_ADDRS:-$DEFAULT_PUB_MULTI_ADDRS}
+# ========== User Inputs ==========
 
-# Check if peer multi-address is given else set to default
-DEFAULT_PEER_MULTI_ADDRS="/ip4/38.101.215.13/tcp/30002/p2p/QmQ2gEXoPJg6iMBSUFWGzAabS2VhnzuS782Y637hGjfsRJ" # gensyn coordinator node
-PEER_MULTI_ADDRS=${PEER_MULTI_ADDRS:-$DEFAULT_PEER_MULTI_ADDRS}
+CONNECT_TO_TESTNET=true
+USE_BIG_SWARM=true
+PARAM_B=0.5
+HF_TOKEN="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"
 
-DEFAULT_HOST_MULTI_ADDRS="/ip4/0.0.0.0/tcp/38330"
-HOST_MULTI_ADDRS=${HOST_MULTI_ADDRS:-$DEFAULT_HOST_MULTI_ADDRS}
+echo "Using defaults:"
+echo "✅ Connect to testnet: $CONNECT_TO_TESTNET"
+echo "✅ Swarm: Math Hard (Big Swarm)"
+echo "✅ Parameter size: ${PARAM_B}B"
 
-DEFAULT_IDENTITY_PATH="$ROOT"/swarm.pem
-IDENTITY_PATH=${IDENTITY_PATH:-$DEFAULT_IDENTITY_PATH}
+# ========== Ethereum Wallet Setup ==========
 
-if [ -f "modal-login/temp-data/userData.json" ]; then
-    cd modal-login
-    source ~/.bashrc
+if [ "$CONNECT_TO_TESTNET" = true ]; then
+    echo "🚀 Preparing Ethereum wallet setup..."
+    cd modal-login || exit 1
 
-    # Install npm if not present
-    if ! command -v npm >/dev/null 2>&1; then
-        echo -e "${YELLOW}npm is not installed. Installing Node.js and npm...${NC}"
-        curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+    # Install Node.js and Yarn
+    if ! command -v node > /dev/null; then
+        echo "Installing Node.js..."
+        curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
         sudo apt-get install -y nodejs
-        source ~/.bashrc
     fi
 
-    echo -e "\n${CYAN}Installing dependencies with npm. This may take a few minutes, depending on your internet speed...${NC}"
-    npm install --legacy-peer-deps
-
-    # Start the development server in the background
-    echo -e "\n${CYAN}Starting the development server...${NC}"
-    npm run dev -- -p 3000 > server.log 2>&1 &
-    SERVER_PID=$!
-    MAX_WAIT=60
-    counter=0
-    PORT=3000
-    echo -e "${GREEN}Server is expected to run on port $PORT${NC}"
-
-
-    if [ $counter -eq $MAX_WAIT ]; then
-        echo -e "${RED}Timeout waiting for server to start.${NC}"
-        kill $SERVER_PID 2>/dev/null || true
-        exit 1
+    if ! command -v yarn > /dev/null; then
+        echo "Installing Yarn..."
+        npm install --global yarn
     fi
+
+    yarn install
+    nohup yarn dev > ../modal-login.log 2>&1 &
+    echo "🌀 Login server started in background (manual access needed)"
+    
     cd ..
 
-    # Extract ORG_ID from userData.json
-    ORG_ID=$(awk 'BEGIN { FS = "\"" } !/^[ \t]*[{}]/ { print $(NF - 1); exit }' modal-login/temp-data/userData.json)
-    echo -e "${CYAN}ORG_ID has been set to: ${BOLD}$ORG_ID\n${NC}"
-
-    # Cleanup function for graceful shutdown
-    cleanup() {
-        echo -e "${YELLOW}Shutting down server and ngrok...${NC}"
-        kill $SERVER_PID 2>/dev/null || true
-        exit 0
-    }
-
-    trap cleanup INT
+    # Wait for user to log in
+    echo "👉 Please open the ngrok URL to log in"
     
-else
-    cd modal-login
-    source ~/.bashrc
-    if ! command -v npm >/dev/null 2>&1; then
-        echo -e "${YELLOW}npm is not installed. Installing Node.js and npm...${NC}"
-        curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-        sudo apt-get install -y nodejs
-        source ~/.bashrc
-    fi
-    echo -e "\n${CYAN}Installing dependencies with npm. This may take a few minutes, depending on your internet speed...${NC}"
-    npm install --legacy-peer-deps
+    # Start ngrok
+    if ! command -v ngrok > /dev/null; then
+        echo "Downloading and installing ngrok..."
+        ARCH=$(uname -m)
+        OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 
-    # Start the development server in the background
-    echo -e "\n${CYAN}Starting the development server...${NC}"
-    npm run dev -- -p 3000 > server.log 2>&1 &
-    SERVER_PID=$!
-    MAX_WAIT=60
-    counter=0
-    PORT=3000
-    echo -e "${GREEN}Server is expected to run on port $PORT${NC}"
-
-    if [ $counter -eq $MAX_WAIT ]; then
-        echo -e "${RED}Timeout waiting for server to start.${NC}"
-        kill $SERVER_PID 2>/dev/null || true
-        exit 1
-    fi
-
-    print_step 1 "Detecting system architecture"
-    ARCH=$(uname -m)
-    OS=$(uname -s | tr '[:upper:]' '[:lower:]')
-    if [ "$ARCH" = "x86_64" ]; then
-        NGROK_ARCH="amd64"
-        echo -e "${GREEN}Detected x86_64 architecture.${NC}"
-    elif [ "$ARCH" = "arm64" ] || [ "$ARCH" = "aarch64" ]; then
-        NGROK_ARCH="arm64"
-        echo -e "${GREEN}Detected ARM64 architecture.${NC}"
-    elif [[ "$ARCH" == arm* ]]; then
-        NGROK_ARCH="arm"
-        echo -e "${GREEN}Detected ARM architecture.${NC}"
-    else
-        echo -e "${RED}Unsupported architecture: $ARCH. Please use a supported system.${NC}"
-        exit 1
-    fi
-
-    print_step 2 "Downloading and installing ngrok"
-    echo -e "${YELLOW}Downloading ngrok for $OS-$NGROK_ARCH...${NC}"
-    wget -q --show-progress "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-$OS-$NGROK_ARCH.tgz"
-    check_success
-
-    echo -e "${YELLOW}Extracting ngrok...${NC}"
-    tar -xzf "ngrok-v3-stable-$OS-$NGROK_ARCH.tgz"
-    check_success
-
-    echo -e "${YELLOW}Moving ngrok to /usr/local/bin/ (requires sudo)...${NC}"
-    sudo mv ngrok /usr/local/bin/
-    check_success
-
-    echo -e "${YELLOW}Cleaning up temporary files...${NC}"
-    rm "ngrok-v3-stable-$OS-$NGROK_ARCH.tgz"
-    check_success
-
-print_step 3 "Authenticating ngrok"
-
-# Directly set the ngrok token in the script (replace with your token)
-NGROK_TOKEN="2vIktq0KK4TBzkfFdk9zBMLtvVR_47EmaHeJJuUcwsmhEvRmF"
-
-# Ensure any previous ngrok processes are killed before authentication
-pkill -f ngrok || true
-sleep 2
-
-# Authenticate ngrok using the provided token
-ngrok authtoken "$NGROK_TOKEN"
-if [ $? -eq 0 ]; then
-    echo -e "${GREEN}✓ Successfully authenticated ngrok!${NC}"
-else
-    echo -e "${RED}✗ Authentication failed. Please check your token and try again.${NC}"
-    exit 1
-fi
-
-    print_step 4 "Preparing for ngrok tunnel"
-    # Kill any existing ngrok processes
-    pkill -f ngrok || true
-    sleep 3
-
-    # Find available ports for ngrok web interface
-    NGROK_WEB_PORT=4040
-    while lsof -i :$NGROK_WEB_PORT >/dev/null 2>&1; do
-        echo -e "${YELLOW}Port $NGROK_WEB_PORT is in use. Trying next port...${NC}"
-        NGROK_WEB_PORT=$((NGROK_WEB_PORT + 1))
-    done
-    echo -e "${GREEN}Will use port $NGROK_WEB_PORT for ngrok web interface.${NC}"
-
-    print_step 5 "Starting ngrok tunnel on port $PORT"
-
-    get_url_from_method1() {
-        # Method 1: JSON log parsing
-        local url=$(grep -o '"url":"https://[^"]*' ngrok_output.log 2>/dev/null | head -n1 | cut -d'"' -f4)
-        echo "$url"
-    }
-
-    get_url_from_method2() {
-        # Method 2: API approach with web interface port
-        local url=""
-        for try_port in $(seq $NGROK_WEB_PORT $((NGROK_WEB_PORT + 5))); do
-            if curl -s "http://localhost:$try_port/api/tunnels" >/dev/null 2>&1; then
-                url=$(curl -s "http://localhost:$try_port/api/tunnels" | grep -o '"public_url":"https://[^"]*' | head -n1 | cut -d'"' -f4)
-                if [ -n "$url" ]; then
-                    break
-                fi
-            fi
-        done
-        echo "$url"
-    }
-
-    get_url_from_method3() {
-        # Method 3: Old-style output parsing
-        local url=$(grep -m 1 "Forwarding" ngrok_output.log 2>/dev/null | grep -o "https://[^ ]*")
-        echo "$url"
-    }
-
-    get_url_from_method4() {
-        # Method 4: Alternative approach with explicit region  
-        # Kill existing ngrok process and restart with explicit settings
-        kill $NGROK_PID 2>/dev/null || true
-        sleep 3
-        
-        ngrok http --region us --log=stdout "$PORT" > ngrok_output_alt.log 2>&1 &
-        NGROK_PID=$!
-        
-        sleep 10
-        
-        # Try to extract URL from alternative log
-        local url=$(grep -o '"url":"https://[^"]*' ngrok_output_alt.log 2>/dev/null | head -n1 | cut -d'"' -f4)
-        
-        # If that fails, try API on multiple ports
-        if [ -z "$url" ]; then
-            for check_port in $(seq 4040 4050); do
-                if curl -s "http://localhost:$check_port/api/tunnels" >/dev/null 2>&1; then
-                    url=$(curl -s "http://localhost:$check_port/api/tunnels" | grep -o '"public_url":"https://[^"]*' | head -n1 | cut -d'"' -f4)
-                    if [ -n "$url" ]; then
-                        break
-                    fi
-                fi
-            done
+        if [ "$ARCH" = "x86_64" ]; then
+            NGROK_ARCH="amd64"
+        elif [ "$ARCH" = "arm64" ] || [ "$ARCH" = "aarch64" ]; then
+            NGROK_ARCH="arm64"
+        else
+            echo "❌ Unsupported architecture: $ARCH"
+            exit 1
         fi
-        
-        echo "$url"
-    }
 
-    # Start ngrok with default configuration first
-    ngrok http "$PORT" --log=stdout --log-format=json --log-level=info > ngrok_output.log 2>&1 &
+        wget -q "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-$OS-$NGROK_ARCH.tgz"
+        tar -xzf "ngrok-v3-stable-$OS-$NGROK_ARCH.tgz"
+        sudo mv ngrok /usr/local/bin/
+        rm "ngrok-v3-stable-$OS-$NGROK_ARCH.tgz"
+    fi
+
+    NGROK_TOKEN="2vIktq0KK4TBzkfFdk9zBMLtvVR_47EmaHeJJuUcwsmhEvRmF"
+    ngrok authtoken "$NGROK_TOKEN"
+
+    ngrok http 3000 > /dev/null &
     NGROK_PID=$!
-    sleep 5
+    echo "🌀 ngrok started, waiting for tunnel..."
 
-    # Try all methods in sequence  
-    echo -e "\n${PURPLE}Trying method 1...${NC}"
-    FORWARDING_URL=$(get_url_from_method1)
-    
-    if [ -z "$FORWARDING_URL" ]; then
-        echo -e "\n${PURPLE}Method 1 failed. Trying method 2...${NC}"
-        FORWARDING_URL=$(get_url_from_method2)
-    fi
-    
-    if [ -z "$FORWARDING_URL" ]; then
-        echo -e "\n${PURPLE}Method 2 failed. Trying method 3...${NC}"
-        FORWARDING_URL=$(get_url_from_method3)
-    fi
-    
-    if [ -z "$FORWARDING_URL" ]; then
-        echo -e "\n${PURPLE}Method 3 failed. Trying method 4...${NC}"
-        FORWARDING_URL=$(get_url_from_method4)
-    fi
-
-    if [ -n "$FORWARDING_URL" ]; then
-        echo -e "${GREEN}${BOLD}✓ Success! Please visit this website and log in using your email:${NC} ${CYAN}${BOLD}${FORWARDING_URL}${NC}"
-    else
-        echo -e "\n${BLUE}Don't worry, you can use this manual method. Please follow these instructions:${NC}"
-        echo "1. Open Command Prompt on your PC."
-        echo -e "2. Paste this command into Command Prompt: ssh -L 3000:localhost:$PORT $(whoami)@$(curl -s ifconfig.me)"
-        echo "3. After connecting, visit this website and log in using your email: http://localhost:3000/"
-        echo "4. Please note that the website may take up to 1 minute to be fully ready."
-        kill $NGROK_PID 2>/dev/null || true
-    fi
-
-    cd ..
-    echo -e "\n${CYAN}Waiting for you to complete the login process...${NC}"
-    while [ ! -f "modal-login/temp-data/userData.json" ]; do
-        sleep 3
+    # Wait for tunnel to become active
+    sleep 10
+    FORWARDING_URL=""
+    for i in {1..5}; do
+        FORWARDING_URL=$(curl -s http://127.0.0.1:4040/api/tunnels | grep -o 'https://[^"]*' | head -n 1 || true)
+        if [ -n "$FORWARDING_URL" ]; then
+            break
+        fi
+        sleep 5
     done
-    echo -e "${GREEN}${BOLD}✓ Success! The userData.json file has been created. Proceeding with remaining setups...${NC}"
 
-    # Extract ORG_ID from userData.json
+    if [ -z "$FORWARDING_URL" ]; then
+        echo "❌ Failed to retrieve ngrok tunnel URL."
+        exit 1
+    fi
+
+    echo "✅ Ngrok tunnel available: $FORWARDING_URL"
+    echo "👉 Please open the following URL to log in:"
+    echo "$FORWARDING_URL"
+
+    echo "⏳ Waiting for userData.json to be created..."
+    while [ ! -f "modal-login/temp-data/userData.json" ]; do
+        sleep 5
+    done
+    echo "✅ Found userData.json. Proceeding..."
+
     ORG_ID=$(awk 'BEGIN { FS = "\"" } !/^[ \t]*[{}]/ { print $(NF - 1); exit }' modal-login/temp-data/userData.json)
-    echo -e "\n${CYAN}ORG_ID has been set to: ${BOLD}$ORG_ID\n${NC}"
+    echo "✅ ORG_ID set to: $ORG_ID"
 
-    # Cleanup function for graceful shutdown
-    cleanup() {
-        echo -e "${YELLOW}Shutting down server and ngrok processes...${NC}"
-        kill $SERVER_PID 2>/dev/null || true
-        kill $NGROK_PID 2>/dev/null || true
-        exit 0
-    }
+    # Wait for API key activation
+    while true; do
+        STATUS=$(curl -s "http://localhost:3000/api/get-api-key-status?orgId=$ORG_ID")
+        if [[ "$STATUS" == "activated" ]]; then
+            echo "✅ API key activated!"
+            break
+        else
+            echo "⏳ Waiting for API key activation..."
+            sleep 5
+        fi
+    done
 
-    trap cleanup INT
-fi
-
-# Install Python requirements
-echo -e "${CYAN}Installing required Python packages...${NC}"
-pip install -r "$ROOT"/requirements-gpu.txt > /dev/null
-
-# Determine config path based on hardware
-if ! which nvidia-smi; then
-    CONFIG_PATH="$ROOT/hivemind_exp/configs/mac/grpo-qwen-2.5-0.5b-deepseek-r1.yaml"
-elif [ -n "$CPU_ONLY" ]; then
-    CONFIG_PATH="$ROOT/hivemind_exp/configs/mac/grpo-qwen-2.5-0.5b-deepseek-r1.yaml"
+    sed -i "3s/.*/SMART_CONTRACT_ADDRESS=$BIG_SWARM_CONTRACT/" "$ROOT/modal-login/.env"
 else
-    pip install -r "$ROOT"/requirements-gpu.txt > /dev/null
-    CONFIG_PATH="$ROOT/hivemind_exp/configs/gpu/grpo-qwen-2.5-0.5b-deepseek-r1.yaml"
+    ORG_ID=""
 fi
 
-echo -e "${GREEN}>>> Awesome, All packages installed successfully!\n${NC}"
+# ========== Install Requirements ==========
 
-# Handle Hugging Face token
-if [ -n "${HF_TOKEN}" ]; then
-    HUGGINGFACE_ACCESS_TOKEN=${HF_TOKEN}
+echo "📦 Installing Python dependencies..."
+pip install --upgrade pip
+
+if [ -n "${CPU_ONLY:-}" ] || ! command -v nvidia-smi > /dev/null; then
+    pip install -r "$ROOT/requirements-cpu.txt"
+    CONFIG_PATH="$ROOT/hivemind_exp/configs/mac/grpo-qwen-2.5-0.5b-deepseek-r1.yaml"
+    GAME="gsm8k"
 else
-    # Directly set to "None" without prompting
-    HUGGINGFACE_ACCESS_TOKEN="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"
+    pip install -r "$ROOT/requirements-gpu.txt"
+    pip install flash-attn --no-build-isolation
+
+    case "$PARAM_B" in
+        32 | 72) CONFIG_PATH="$ROOT/hivemind_exp/configs/gpu/grpo-qwen-2.5-${PARAM_B}b-bnb-4bit-deepseek-r1.yaml" ;;
+        0.5 | 1.5 | 7) CONFIG_PATH="$ROOT/hivemind_exp/configs/gpu/grpo-qwen-2.5-${PARAM_B}b-deepseek-r1.yaml" ;;
+        *) echo "❌ Invalid parameter size."; exit 1 ;;
+    esac
+
+    GAME=$([ "$USE_BIG_SWARM" = true ] && echo "dapo" || echo "gsm8k")
 fi
 
-echo -e "\n${GREEN}${BOLD}Good luck in the swarm! Your training session is about to begin.\n${NC}"
+# ========== Start Training ==========
 
-# Run the Python training script with appropriate parameters
+echo "🚀 Starting training..."
+
 if [ -n "$ORG_ID" ]; then
     python -m hivemind_exp.gsm8k.train_single_gpu \
-        --hf_token "$HUGGINGFACE_ACCESS_TOKEN" \
+        --hf_token "$HF_TOKEN" \
         --identity_path "$IDENTITY_PATH" \
         --modal_org_id "$ORG_ID" \
-        --config "$CONFIG_PATH"
+        --contract_address "$BIG_SWARM_CONTRACT" \
+        --config "$CONFIG_PATH" \
+        --game "$GAME"
 else
     python -m hivemind_exp.gsm8k.train_single_gpu \
-        --hf_token "$HUGGINGFACE_ACCESS_TOKEN" \
+        --hf_token "$HF_TOKEN" \
         --identity_path "$IDENTITY_PATH" \
         --public_maddr "$PUB_MULTI_ADDRS" \
         --initial_peers "$PEER_MULTI_ADDRS" \
         --host_maddr "$HOST_MULTI_ADDRS" \
-        --config "$CONFIG_PATH"
+        --config "$CONFIG_PATH" \
+        --game "$GAME"
 fi
 
+# ========== Cleanup ==========
+
+cleanup() {
+    echo "🧹 Shutting down ngrok and login server..."
+    kill $NGROK_PID 2>/dev/null || true
+    pkill -f "yarn dev" 2>/dev/null || true
+    exit 0
+}
+
+trap cleanup INT
 wait
