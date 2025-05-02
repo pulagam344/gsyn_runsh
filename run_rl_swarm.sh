@@ -23,7 +23,7 @@ export HF_HUB_DOWNLOAD_TIMEOUT=120
 
 CONNECT_TO_TESTNET=true
 USE_BIG_SWARM=true
-PARAM_B=7
+PARAM_B=1.5
 HF_TOKEN="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"
 
 echo "Using defaults:"
