@@ -109,7 +109,7 @@ if [ "$CONNECT_TO_TESTNET" = true ]; then
     yarn dev > /dev/null 2>&1 &
 
     # Only setup ngrok if userData.json is NOT already present
-    if [ ! -f "temp-data/userData.json" ]; then
+    if [ ! -f "modal-login/temp-data/userData.json" ]; then
         if ! command -v ngrok > /dev/null 2>&1; then
             echo_green "Installing ngrok..."
             wget -qO ngrok.zip https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-stable-linux-amd64.zip
