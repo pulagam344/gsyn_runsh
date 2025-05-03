@@ -14,15 +14,12 @@ export ORG_ID
 export HF_TOKEN="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"
 export HF_HUB_DOWNLOAD_TIMEOUT=120  # 2 minutes
 
-# Check if public multi-address is given else set to default
 DEFAULT_PUB_MULTI_ADDRS=""
 PUB_MULTI_ADDRS=${PUB_MULTI_ADDRS:-$DEFAULT_PUB_MULTI_ADDRS}
 
-# Check if peer multi-address is given else set to default
 DEFAULT_PEER_MULTI_ADDRS="/ip4/38.101.215.13/tcp/30002/p2p/QmQ2gEXoPJg6iMBSUFWGzAabS2VhnzuS782Y637hGjfsRJ"
 PEER_MULTI_ADDRS=${PEER_MULTI_ADDRS:-$DEFAULT_PEER_MULTI_ADDRS}
 
-# Check if host multi-address is given else set to default
 DEFAULT_HOST_MULTI_ADDRS="/ip4/0.0.0.0/tcp/38331"
 HOST_MULTI_ADDRS=${HOST_MULTI_ADDRS:-$DEFAULT_HOST_MULTI_ADDRS}
 
@@ -81,48 +78,38 @@ fi
 
 if [ "$CONNECT_TO_TESTNET" = true ]; then
     echo "Please login to create an Ethereum Server Wallet"
+    cd modal-login
 
-    # Skip ngrok/modal-login if userData.json already exists
-    if [ -f "modal-login/temp-data/userData.json" ]; then
-        echo_green "Found existing userData.json, skipping ngrok and modal-login..."
-        ORG_ID=$(awk 'BEGIN { FS = "\"" } !/^[ \t]*[{}]/ { print $(NF - 1); exit }' modal-login/temp-data/userData.json)
-        echo "Your ORG_ID is set to: $ORG_ID"
+    if ! command -v node > /dev/null 2>&1; then
+        echo "Node.js not found. Installing NVM and latest Node.js..."
+        export NVM_DIR="$HOME/.nvm"
+        if [ ! -d "$NVM_DIR" ]; then
+            curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+        fi
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+        nvm install node
     else
-        cd modal-login
+        echo "Node.js is already installed: $(node -v)"
+    fi
 
-        if ! command -v node > /dev/null 2>&1; then
-            echo "Node.js not found. Installing NVM and latest Node.js..."
-            export NVM_DIR="$HOME/.nvm"
-            if [ ! -d "$NVM_DIR" ]; then
-                curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
-            fi
-            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-            [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-            nvm install node
+    if ! command -v yarn > /dev/null 2>&1; then
+        if grep -qi "ubuntu" /etc/os-release 2> /dev/null || uname -r | grep -qi "microsoft"; then
+            echo "Detected Ubuntu or WSL Ubuntu. Installing Yarn via apt..."
+            curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
+            echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
+            sudo apt update && sudo apt install -y yarn
         else
-            echo "Node.js is already installed: $(node -v)"
+            echo "Yarn not found. Installing Yarn globally with npm (no profile edits)…"
+            npm install -g --silent yarn
         fi
+    fi
 
-        if ! command -v yarn > /dev/null 2>&1; then
-            if grep -qi "ubuntu" /etc/os-release 2> /dev/null || uname -r | grep -qi "microsoft"; then
-                echo "Detected Ubuntu or WSL Ubuntu. Installing Yarn via apt..."
-                curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
-                echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
-                sudo apt update && sudo apt install -y yarn
-            else
-                echo "Yarn not found. Installing Yarn globally with npm (no profile edits)…"
-                npm install -g --silent yarn
-            fi
-        fi
+    yarn install
+    yarn dev > /dev/null 2>&1 &
 
-        yarn install
-        yarn dev > /dev/null 2>&1 &
-
-        SERVER_PID=$!
-        echo "Started server process: $SERVER_PID"
-        sleep 5
-
-        # Install ngrok and expose port 3000
+    # Only setup ngrok if userData.json is NOT already present
+    if [ ! -f "temp-data/userData.json" ]; then
         if ! command -v ngrok > /dev/null 2>&1; then
             echo_green "Installing ngrok..."
             wget -qO ngrok.zip https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-stable-linux-amd64.zip
@@ -139,36 +126,36 @@ if [ "$CONNECT_TO_TESTNET" = true ]; then
         NGROK_URL=$(curl -s http://localhost:4040/api/tunnels | grep -o 'https://[^"]*')
         echo_green ">> Ngrok tunnel is ready! Open this URL in your browser to complete login:"
         echo_blue "$NGROK_URL"
+    fi
 
-        cd ..
+    cd ..
 
-        echo_green ">> Waiting for modal userData.json to be created..."
-        while [ ! -f "modal-login/temp-data/userData.json" ]; do
-            sleep 5
-        done
-        echo "Found userData.json. Proceeding..."
+    echo_green ">> Waiting for modal userData.json to be created..."
+    while [ ! -f "modal-login/temp-data/userData.json" ]; do
+        sleep 5
+    done
+    echo "Found userData.json. Proceeding..."
 
-        ORG_ID=$(awk 'BEGIN { FS = "\"" } !/^[ \t]*[{}]/ { print $(NF - 1); exit }' modal-login/temp-data/userData.json)
-        echo "Your ORG_ID is set to: $ORG_ID"
+    ORG_ID=$(awk 'BEGIN { FS = "\"" } !/^[ \t]*[{}]/ { print $(NF - 1); exit }' modal-login/temp-data/userData.json)
+    echo "Your ORG_ID is set to: $ORG_ID"
 
-        echo "Waiting for API key to become activated..."
-        while true; do
-            STATUS=$(curl -s "http://localhost:3000/api/get-api-key-status?orgId=$ORG_ID")
-            if [[ "$STATUS" == "activated" ]]; then
-                echo "API key is activated! Proceeding..."
-                break
-            else
-                echo "Waiting for API key to be activated..."
-                sleep 5
-            fi
-        done
-
-        ENV_FILE="$ROOT"/modal-login/.env
-        if [[ "$OSTYPE" == "darwin"* ]]; then
-            sed -i '' "3s/.*/SMART_CONTRACT_ADDRESS=$SWARM_CONTRACT/" "$ENV_FILE"
+    echo "Waiting for API key to become activated..."
+    while true; do
+        STATUS=$(curl -s "http://localhost:3000/api/get-api-key-status?orgId=$ORG_ID")
+        if [[ "$STATUS" == "activated" ]]; then
+            echo "API key is activated! Proceeding..."
+            break
         else
-            sed -i "3s/.*/SMART_CONTRACT_ADDRESS=$SWARM_CONTRACT/" "$ENV_FILE"
+            echo "Waiting for API key to be activated..."
+            sleep 5
         fi
+    done
+
+    ENV_FILE="$ROOT"/modal-login/.env
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        sed -i '' "3s/.*/SMART_CONTRACT_ADDRESS=$SWARM_CONTRACT/" "$ENV_FILE"
+    else
+        sed -i "3s/.*/SMART_CONTRACT_ADDRESS=$SWARM_CONTRACT/" "$ENV_FILE"
     fi
 fi
 
