@@ -81,86 +81,94 @@ fi
 
 if [ "$CONNECT_TO_TESTNET" = true ]; then
     echo "Please login to create an Ethereum Server Wallet"
-    cd modal-login
 
-    if ! command -v node > /dev/null 2>&1; then
-        echo "Node.js not found. Installing NVM and latest Node.js..."
-        export NVM_DIR="$HOME/.nvm"
-        if [ ! -d "$NVM_DIR" ]; then
-            curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
-        fi
-        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-        [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-        nvm install node
+    # Skip ngrok/modal-login if userData.json already exists
+    if [ -f "modal-login/temp-data/userData.json" ]; then
+        echo_green "Found existing userData.json, skipping ngrok and modal-login..."
+        ORG_ID=$(awk 'BEGIN { FS = "\"" } !/^[ \t]*[{}]/ { print $(NF - 1); exit }' modal-login/temp-data/userData.json)
+        echo "Your ORG_ID is set to: $ORG_ID"
     else
-        echo "Node.js is already installed: $(node -v)"
-    fi
+        cd modal-login
 
-    if ! command -v yarn > /dev/null 2>&1; then
-        if grep -qi "ubuntu" /etc/os-release 2> /dev/null || uname -r | grep -qi "microsoft"; then
-            echo "Detected Ubuntu or WSL Ubuntu. Installing Yarn via apt..."
-            curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
-            echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
-            sudo apt update && sudo apt install -y yarn
+        if ! command -v node > /dev/null 2>&1; then
+            echo "Node.js not found. Installing NVM and latest Node.js..."
+            export NVM_DIR="$HOME/.nvm"
+            if [ ! -d "$NVM_DIR" ]; then
+                curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+            fi
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+            nvm install node
         else
-            echo "Yarn not found. Installing Yarn globally with npm (no profile edits)…"
-            npm install -g --silent yarn
+            echo "Node.js is already installed: $(node -v)"
         fi
-    fi
 
-    yarn install
-    yarn dev > /dev/null 2>&1 &
+        if ! command -v yarn > /dev/null 2>&1; then
+            if grep -qi "ubuntu" /etc/os-release 2> /dev/null || uname -r | grep -qi "microsoft"; then
+                echo "Detected Ubuntu or WSL Ubuntu. Installing Yarn via apt..."
+                curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
+                echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
+                sudo apt update && sudo apt install -y yarn
+            else
+                echo "Yarn not found. Installing Yarn globally with npm (no profile edits)…"
+                npm install -g --silent yarn
+            fi
+        fi
 
-    SERVER_PID=$!
-    echo "Started server process: $SERVER_PID"
-    sleep 5
+        yarn install
+        yarn dev > /dev/null 2>&1 &
 
-    # Install ngrok and expose port 3000
-    if ! command -v ngrok > /dev/null 2>&1; then
-        echo_green "Installing ngrok..."
-        wget -qO ngrok.zip https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-stable-linux-amd64.zip
-        unzip ngrok.zip -d /usr/local/bin/ && rm ngrok.zip
-    fi
-
-    echo_green "Authenticating ngrok..."
-    ngrok config add-authtoken 2vIktq0KK4TBzkfFdk9zBMLtvVR_47EmaHeJJuUcwsmhEvRmF
-
-    echo_green "Starting ngrok tunnel for port 3000..."
-    ngrok http 3000 > /dev/null &
-    sleep 5
-
-    NGROK_URL=$(curl -s http://localhost:4040/api/tunnels | grep -o 'https://[^"]*')
-    echo_green ">> Ngrok tunnel is ready! Open this URL in your browser to complete login:"
-    echo_blue "$NGROK_URL"
-
-    cd ..
-
-    echo_green ">> Waiting for modal userData.json to be created..."
-    while [ ! -f "modal-login/temp-data/userData.json" ]; do
+        SERVER_PID=$!
+        echo "Started server process: $SERVER_PID"
         sleep 5
-    done
-    echo "Found userData.json. Proceeding..."
 
-    ORG_ID=$(awk 'BEGIN { FS = "\"" } !/^[ \t]*[{}]/ { print $(NF - 1); exit }' modal-login/temp-data/userData.json)
-    echo "Your ORG_ID is set to: $ORG_ID"
-
-    echo "Waiting for API key to become activated..."
-    while true; do
-        STATUS=$(curl -s "http://localhost:3000/api/get-api-key-status?orgId=$ORG_ID")
-        if [[ "$STATUS" == "activated" ]]; then
-            echo "API key is activated! Proceeding..."
-            break
-        else
-            echo "Waiting for API key to be activated..."
-            sleep 5
+        # Install ngrok and expose port 3000
+        if ! command -v ngrok > /dev/null 2>&1; then
+            echo_green "Installing ngrok..."
+            wget -qO ngrok.zip https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-stable-linux-amd64.zip
+            unzip ngrok.zip -d /usr/local/bin/ && rm ngrok.zip
         fi
-    done
 
-    ENV_FILE="$ROOT"/modal-login/.env
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        sed -i '' "3s/.*/SMART_CONTRACT_ADDRESS=$SWARM_CONTRACT/" "$ENV_FILE"
-    else
-        sed -i "3s/.*/SMART_CONTRACT_ADDRESS=$SWARM_CONTRACT/" "$ENV_FILE"
+        echo_green "Authenticating ngrok..."
+        ngrok config add-authtoken 2vIktq0KK4TBzkfFdk9zBMLtvVR_47EmaHeJJuUcwsmhEvRmF
+
+        echo_green "Starting ngrok tunnel for port 3000..."
+        ngrok http 3000 > /dev/null &
+        sleep 5
+
+        NGROK_URL=$(curl -s http://localhost:4040/api/tunnels | grep -o 'https://[^"]*')
+        echo_green ">> Ngrok tunnel is ready! Open this URL in your browser to complete login:"
+        echo_blue "$NGROK_URL"
+
+        cd ..
+
+        echo_green ">> Waiting for modal userData.json to be created..."
+        while [ ! -f "modal-login/temp-data/userData.json" ]; do
+            sleep 5
+        done
+        echo "Found userData.json. Proceeding..."
+
+        ORG_ID=$(awk 'BEGIN { FS = "\"" } !/^[ \t]*[{}]/ { print $(NF - 1); exit }' modal-login/temp-data/userData.json)
+        echo "Your ORG_ID is set to: $ORG_ID"
+
+        echo "Waiting for API key to become activated..."
+        while true; do
+            STATUS=$(curl -s "http://localhost:3000/api/get-api-key-status?orgId=$ORG_ID")
+            if [[ "$STATUS" == "activated" ]]; then
+                echo "API key is activated! Proceeding..."
+                break
+            else
+                echo "Waiting for API key to be activated..."
+                sleep 5
+            fi
+        done
+
+        ENV_FILE="$ROOT"/modal-login/.env
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            sed -i '' "3s/.*/SMART_CONTRACT_ADDRESS=$SWARM_CONTRACT/" "$ENV_FILE"
+        else
+            sed -i "3s/.*/SMART_CONTRACT_ADDRESS=$SWARM_CONTRACT/" "$ENV_FILE"
+        fi
     fi
 fi
 
