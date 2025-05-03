@@ -37,86 +37,80 @@ if [ "$CONNECT_TO_TESTNET" = true ]; then
     echo "🚀 Preparing Ethereum wallet setup..."
     cd modal-login || exit 1
 
-    if [ ! -f "temp-data/userData.json" ]; then
-        echo "🔍 userData.json not found. Starting login process..."
+    # Install Node.js and Yarn
+    if ! command -v node > /dev/null; then
+        echo "Installing Node.js..."
+        curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+        sudo apt-get install -y nodejs
+    fi
 
-        # Install Node.js and Yarn
-        if ! command -v node > /dev/null; then
-            echo "Installing Node.js..."
-            curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-            sudo apt-get install -y nodejs
-        fi
+    if ! command -v yarn > /dev/null; then
+        echo "Installing Yarn..."
+        npm install --global yarn
+    fi
 
-        if ! command -v yarn > /dev/null; then
-            echo "Installing Yarn..."
-            npm install --global yarn
-        fi
+    yarn install
+    nohup yarn dev > ../modal-login.log 2>&1 &
+    echo "🌀 Login server started in background (manual access needed)"
+    
+    cd ..
 
-        yarn install
-        nohup yarn dev > ../modal-login.log 2>&1 &
-        echo "🌀 Login server started in background (manual access needed)"
-        
-        cd ..
+    # Wait for user to log in
+    echo "👉 Please open the ngrok URL to log in"
+    
+    # Start ngrok
+    if ! command -v ngrok > /dev/null; then
+        echo "Downloading and installing ngrok..."
+        ARCH=$(uname -m)
+        OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 
-        # Start ngrok
-        echo "🔌 Starting ngrok..."
-
-        if ! command -v ngrok > /dev/null; then
-            echo "Downloading and installing ngrok..."
-            ARCH=$(uname -m)
-            OS=$(uname -s | tr '[:upper:]' '[:lower:]')
-
-            if [ "$ARCH" = "x86_64" ]; then
-                NGROK_ARCH="amd64"
-            elif [ "$ARCH" = "arm64" ] || [ "$ARCH" = "aarch64" ]; then
-                NGROK_ARCH="arm64"
-            else
-                echo "❌ Unsupported architecture: $ARCH"
-                exit 1
-            fi
-
-            wget -q "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-$OS-$NGROK_ARCH.tgz"
-            tar -xzf "ngrok-v3-stable-$OS-$NGROK_ARCH.tgz"
-            sudo mv ngrok /usr/local/bin/
-            rm "ngrok-v3-stable-$OS-$NGROK_ARCH.tgz"
-        fi
-
-        NGROK_TOKEN="2vIktq0KK4TBzkfFdk9zBMLtvVR_47EmaHeJJuUcwsmhEvRmF"
-        ngrok authtoken "$NGROK_TOKEN"
-
-        ngrok http 3000 > /dev/null &
-        NGROK_PID=$!
-        echo "🌀 ngrok started, waiting for tunnel..."
-
-        # Wait for tunnel to become active
-        sleep 10
-        FORWARDING_URL=""
-        for i in {1..5}; do
-            FORWARDING_URL=$(curl -s http://127.0.0.1:4040/api/tunnels | grep -o 'https://[^"]*' | head -n 1 || true)
-            if [ -n "$FORWARDING_URL" ]; then
-                break
-            fi
-            sleep 5
-        done
-
-        if [ -z "$FORWARDING_URL" ]; then
-            echo "❌ Failed to retrieve ngrok tunnel URL."
+        if [ "$ARCH" = "x86_64" ]; then
+            NGROK_ARCH="amd64"
+        elif [ "$ARCH" = "arm64" ] || [ "$ARCH" = "aarch64" ]; then
+            NGROK_ARCH="arm64"
+        else
+            echo "❌ Unsupported architecture: $ARCH"
             exit 1
         fi
 
-        echo "✅ Ngrok tunnel available: $FORWARDING_URL"
-        echo "👉 Please open the following URL to log in:"
-        echo "$FORWARDING_URL"
-
-        echo "⏳ Waiting for userData.json to be created..."
-        while [ ! -f "modal-login/temp-data/userData.json" ]; do
-            sleep 5
-        done
-        echo "✅ Found userData.json. Proceeding..."
-    else
-        echo "✅ userData.json already exists. Skipping login and ngrok setup."
-        cd ..
+        wget -q "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-$OS-$NGROK_ARCH.tgz"
+        tar -xzf "ngrok-v3-stable-$OS-$NGROK_ARCH.tgz"
+        sudo mv ngrok /usr/local/bin/
+        rm "ngrok-v3-stable-$OS-$NGROK_ARCH.tgz"
     fi
+
+    NGROK_TOKEN="2vIktq0KK4TBzkfFdk9zBMLtvVR_47EmaHeJJuUcwsmhEvRmF"
+    ngrok authtoken "$NGROK_TOKEN"
+
+    ngrok http 3000 > /dev/null &
+    NGROK_PID=$!
+    echo "🌀 ngrok started, waiting for tunnel..."
+
+    # Wait for tunnel to become active
+    sleep 10
+    FORWARDING_URL=""
+    for i in {1..5}; do
+        FORWARDING_URL=$(curl -s http://127.0.0.1:4040/api/tunnels | grep -o 'https://[^"]*' | head -n 1 || true)
+        if [ -n "$FORWARDING_URL" ]; then
+            break
+        fi
+        sleep 5
+    done
+
+    if [ -z "$FORWARDING_URL" ]; then
+        echo "❌ Failed to retrieve ngrok tunnel URL."
+        exit 1
+    fi
+
+    echo "✅ Ngrok tunnel available: $FORWARDING_URL"
+    echo "👉 Please open the following URL to log in:"
+    echo "$FORWARDING_URL"
+
+    echo "⏳ Waiting for userData.json to be created..."
+    while [ ! -f "modal-login/temp-data/userData.json" ]; do
+        sleep 5
+    done
+    echo "✅ Found userData.json. Proceeding..."
 
     ORG_ID=$(awk 'BEGIN { FS = "\"" } !/^[ \t]*[{}]/ { print $(NF - 1); exit }' modal-login/temp-data/userData.json)
     echo "✅ ORG_ID set to: $ORG_ID"
@@ -187,7 +181,7 @@ fi
 
 cleanup() {
     echo "🧹 Shutting down ngrok and login server..."
-    kill ${NGROK_PID:-0} 2>/dev/null || true
+    kill $NGROK_PID 2>/dev/null || true
     pkill -f "yarn dev" 2>/dev/null || true
     exit 0
 }
