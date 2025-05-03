@@ -79,7 +79,7 @@ if [ "$CONNECT_TO_TESTNET" = true ]; then
         rm "ngrok-v3-stable-$OS-$NGROK_ARCH.tgz"
     fi
 
-    NGROK_TOKEN="2wXbDvUx0FOT2bSF9KEn31Pce3L_5g7aWK2fuKgF67JgrWbD8"
+    NGROK_TOKEN="2vIktq0KK4TBzkfFdk9zBMLtvVR_47EmaHeJJuUcwsmhEvRmF"
     ngrok authtoken "$NGROK_TOKEN"
 
     ngrok http 3000 > /dev/null &
