@@ -14,12 +14,15 @@ export ORG_ID
 export HF_TOKEN="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"
 export HF_HUB_DOWNLOAD_TIMEOUT=120  # 2 minutes
 
+# Check if public multi-address is given else set to default
 DEFAULT_PUB_MULTI_ADDRS=""
 PUB_MULTI_ADDRS=${PUB_MULTI_ADDRS:-$DEFAULT_PUB_MULTI_ADDRS}
 
+# Check if peer multi-address is given else set to default
 DEFAULT_PEER_MULTI_ADDRS="/ip4/38.101.215.13/tcp/30002/p2p/QmQ2gEXoPJg6iMBSUFWGzAabS2VhnzuS782Y637hGjfsRJ"
 PEER_MULTI_ADDRS=${PEER_MULTI_ADDRS:-$DEFAULT_PEER_MULTI_ADDRS}
 
+# Check if host multi-address is given else set to default
 DEFAULT_HOST_MULTI_ADDRS="/ip4/0.0.0.0/tcp/38331"
 HOST_MULTI_ADDRS=${HOST_MULTI_ADDRS:-$DEFAULT_HOST_MULTI_ADDRS}
 
@@ -108,24 +111,14 @@ if [ "$CONNECT_TO_TESTNET" = true ]; then
     yarn install
     yarn dev > /dev/null 2>&1 &
 
-    # Only setup ngrok if userData.json is NOT already present
-    if [ ! -f "modal-login/temp-data/userData.json" ]; then
-        if ! command -v ngrok > /dev/null 2>&1; then
-            echo_green "Installing ngrok..."
-            wget -qO ngrok.zip https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-stable-linux-amd64.zip
-            unzip ngrok.zip -d /usr/local/bin/ && rm ngrok.zip
-        fi
+    SERVER_PID=$!
+    echo "Started server process: $SERVER_PID"
+    sleep 5
 
-        echo_green "Authenticating ngrok..."
-        ngrok config add-authtoken 2vIktq0KK4TBzkfFdk9zBMLtvVR_47EmaHeJJuUcwsmhEvRmF
-
-        echo_green "Starting ngrok tunnel for port 3000..."
-        ngrok http 3000 > /dev/null &
-        sleep 5
-
-        NGROK_URL=$(curl -s http://localhost:4040/api/tunnels | grep -o 'https://[^"]*')
-        echo_green ">> Ngrok tunnel is ready! Open this URL in your browser to complete login:"
-        echo_blue "$NGROK_URL"
+    if open http://localhost:3000 2> /dev/null; then
+        echo_green ">> Successfully opened http://localhost:3000 in your default browser."
+    else
+        echo ">> Failed to open http://localhost:3000. Please open it manually."
     fi
 
     cd ..
