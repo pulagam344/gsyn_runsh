@@ -11,28 +11,37 @@ export HOST_MULTI_ADDRS
 export IDENTITY_PATH
 export CONNECT_TO_TESTNET=true
 export ORG_ID
-export HF_TOKEN="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"
 export HF_HUB_DOWNLOAD_TIMEOUT=120  # 2 minutes
+
+# Hardcoded values
+USE_BIG_SWARM=true
+PARAM_B=0.5
+HF_TOKEN="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"
 
 # Check if public multi-address is given else set to default
 DEFAULT_PUB_MULTI_ADDRS=""
 PUB_MULTI_ADDRS=${PUB_MULTI_ADDRS:-$DEFAULT_PUB_MULTI_ADDRS}
 
 # Check if peer multi-address is given else set to default
-DEFAULT_PEER_MULTI_ADDRS="/ip4/38.101.215.13/tcp/30002/p2p/QmQ2gEXoPJg6iMBSUFWGzAabS2VhnzuS782Y637hGjfsRJ"
+DEFAULT_PEER_MULTI_ADDRS="/ip4/38.101.215.13/tcp/30002/p2p/QmQ2gEXoPJg6iMBSUFWGzAabS2VhnzuS782Y637hGjfsRJ" # gensyn coordinator node
 PEER_MULTI_ADDRS=${PEER_MULTI_ADDRS:-$DEFAULT_PEER_MULTI_ADDRS}
 
 # Check if host multi-address is given else set to default
 DEFAULT_HOST_MULTI_ADDRS="/ip4/0.0.0.0/tcp/38331"
 HOST_MULTI_ADDRS=${HOST_MULTI_ADDRS:-$DEFAULT_HOST_MULTI_ADDRS}
 
+# Path to an RSA private key. If this path does not exist, a new key pair will be created.
+# Remove this file if you want a new PeerID.
 DEFAULT_IDENTITY_PATH="$ROOT"/swarm.pem
 IDENTITY_PATH=${IDENTITY_PATH:-$DEFAULT_IDENTITY_PATH}
 
 SMALL_SWARM_CONTRACT="0x69C6e1D608ec64885E7b185d39b04B491a71768C"
 BIG_SWARM_CONTRACT="0x6947c6E196a48B77eFa9331EC1E3e45f3Ee5Fd58"
 
+# Will ignore any visible GPUs if set.
 CPU_ONLY=${CPU_ONLY:-""}
+
+# Set if successfully parsed from modal-login/temp-data/userData.json.
 ORG_ID=${ORG_ID:-""}
 
 GREEN_TEXT="\033[32m"
@@ -49,10 +58,13 @@ echo_blue() {
 
 ROOT_DIR="$(cd $(dirname ${BASH_SOURCE[0]}) && pwd)"
 
+# Function to clean up the server process upon exit
 cleanup() {
     echo_green ">> Shutting down trainer..."
-    rm -r $ROOT_DIR/modal-login/temp-data/*.json 2> /dev/null || true
+
+    # Kill all processes belonging to this script's process group
     kill -- -$$ || true
+
     exit 0
 }
 
@@ -67,11 +79,8 @@ cat << "EOF"
     ██   ██ ███████       ███████  ███ ███  ██   ██ ██   ██ ██      ██
 
     From Gensyn
-EOF
 
-# Hardcoded values
-USE_BIG_SWARM=true
-PARAM_B=0.5
+EOF
 
 if [ "$USE_BIG_SWARM" = true ]; then
     SWARM_CONTRACT="$BIG_SWARM_CONTRACT"
@@ -80,9 +89,12 @@ else
 fi
 
 if [ "$CONNECT_TO_TESTNET" = true ]; then
+    # Run modal_login server.
     echo "Please login to create an Ethereum Server Wallet"
     cd modal-login
+    # Check if the yarn command exists; if not, install Yarn.
 
+    # Node.js + NVM setup
     if ! command -v node > /dev/null 2>&1; then
         echo "Node.js not found. Installing NVM and latest Node.js..."
         export NVM_DIR="$HOME/.nvm"
@@ -92,27 +104,48 @@ if [ "$CONNECT_TO_TESTNET" = true ]; then
         [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
         [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
         nvm install node
+    else
+        echo "Node.js is already installed: $(node -v)"
     fi
 
     if ! command -v yarn > /dev/null 2>&1; then
-        npm install -g --silent yarn
+        # Detect Ubuntu (including WSL Ubuntu) and install Yarn accordingly
+        if grep -qi "ubuntu" /etc/os-release 2> /dev/null || uname -r | grep -qi "microsoft"; then
+            echo "Detected Ubuntu or WSL Ubuntu. Installing Yarn via apt..."
+            curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
+            echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
+            sudo apt update && sudo apt install -y yarn
+        else
+            echo "Yarn not found. Installing Yarn globally with npm (no profile edits)…"
+            npm install -g --silent yarn
+        fi
     fi
-
     yarn install
-    yarn dev > /dev/null 2>&1 &
-    SERVER_PID=$!
+    yarn dev > /dev/null 2>&1 & # Run in background and suppress output
+
+    SERVER_PID=$!  # Store the process ID
     echo "Started server process: $SERVER_PID"
     sleep 5
 
+    # Try to open the URL in the default browser
+    if open http://localhost:3000 2> /dev/null; then
+        echo_green ">> Successfully opened http://localhost:3000 in your default browser."
+    else
+        echo ">> Failed to open http://localhost:3000. Please open it manually."
+    fi
+
+    cd ..
+
     echo_green ">> Waiting for modal userData.json to be created..."
-    while [ ! -f "temp-data/userData.json" ]; do
-        sleep 5
+    while [ ! -f "modal-login/temp-data/userData.json" ]; do
+        sleep 5  # Wait for 5 seconds before checking again
     done
     echo "Found userData.json. Proceeding..."
 
-    ORG_ID=$(awk 'BEGIN { FS = "\"" } !/^[ \t]*[{}]/ { print $(NF - 1); exit }' temp-data/userData.json)
+    ORG_ID=$(awk 'BEGIN { FS = "\"" } !/^[ \t]*[{}]/ { print $(NF - 1); exit }' modal-login/temp-data/userData.json)
     echo "Your ORG_ID is set to: $ORG_ID"
 
+    # Wait until the API key is activated by the client
     echo "Waiting for API key to become activated..."
     while true; do
         STATUS=$(curl -s "http://localhost:3000/api/get-api-key-status?orgId=$ORG_ID")
@@ -131,8 +164,6 @@ if [ "$CONNECT_TO_TESTNET" = true ]; then
     else
         sed -i "3s/.*/SMART_CONTRACT_ADDRESS=$SWARM_CONTRACT/" "$ENV_FILE"
     fi
-
-    cd ..
 fi
 
 echo_green ">> Getting requirements..."
@@ -149,7 +180,7 @@ else
     case "$PARAM_B" in
         32 | 72) CONFIG_PATH="$ROOT/hivemind_exp/configs/gpu/grpo-qwen-2.5-${PARAM_B}b-bnb-4bit-deepseek-r1.yaml" ;;
         0.5 | 1.5 | 7) CONFIG_PATH="$ROOT/hivemind_exp/configs/gpu/grpo-qwen-2.5-${PARAM_B}b-deepseek-r1.yaml" ;;
-        *) echo ">>> Invalid PARAM_B value. Exiting." && exit 1 ;;
+        *)  echo ">>> Please answer in [0.5, 1.5, 7, 32, 72]." ;;
     esac
 
     if [ "$USE_BIG_SWARM" = true ]; then
@@ -160,7 +191,8 @@ else
 fi
 
 echo_green ">> Done!"
-HUGGINGFACE_ACCESS_TOKEN="${HF_TOKEN:-None}"
+
+HUGGINGFACE_ACCESS_TOKEN=${HF_TOKEN:-"None"}
 
 echo_green ">> Good luck in the swarm!"
 echo_blue ">> Post about rl-swarm on X/twitter! --> https://tinyurl.com/swarmtweet"
