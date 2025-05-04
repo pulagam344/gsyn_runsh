@@ -2,216 +2,173 @@
 
 set -euo pipefail
 
-# General arguments
+# ========== Configuration ==========
+
 ROOT=$PWD
-
-export PUB_MULTI_ADDRS
-export PEER_MULTI_ADDRS
-export HOST_MULTI_ADDRS
-export IDENTITY_PATH
-export CONNECT_TO_TESTNET=true
-export ORG_ID
-export HF_HUB_DOWNLOAD_TIMEOUT=120  # 2 minutes
-
-# Hardcoded values
-USE_BIG_SWARM=true
-PARAM_B=0.5
-HF_TOKEN="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"
-
-# Check if public multi-address is given else set to default
 DEFAULT_PUB_MULTI_ADDRS=""
-PUB_MULTI_ADDRS=${PUB_MULTI_ADDRS:-$DEFAULT_PUB_MULTI_ADDRS}
-
-# Check if peer multi-address is given else set to default
-DEFAULT_PEER_MULTI_ADDRS="/ip4/38.101.215.13/tcp/30002/p2p/QmQ2gEXoPJg6iMBSUFWGzAabS2VhnzuS782Y637hGjfsRJ" # gensyn coordinator node
-PEER_MULTI_ADDRS=${PEER_MULTI_ADDRS:-$DEFAULT_PEER_MULTI_ADDRS}
-
-# Check if host multi-address is given else set to default
+DEFAULT_PEER_MULTI_ADDRS="/ip4/38.101.215.13/tcp/30002/p2p/QmQ2gEXoPJg6iMBSUFWGzAabS2VhnzuS782Y637hGjfsRJ"
 DEFAULT_HOST_MULTI_ADDRS="/ip4/0.0.0.0/tcp/38331"
-HOST_MULTI_ADDRS=${HOST_MULTI_ADDRS:-$DEFAULT_HOST_MULTI_ADDRS}
-
-# Path to an RSA private key. If this path does not exist, a new key pair will be created.
-# Remove this file if you want a new PeerID.
-DEFAULT_IDENTITY_PATH="$ROOT"/swarm.pem
-IDENTITY_PATH=${IDENTITY_PATH:-$DEFAULT_IDENTITY_PATH}
+DEFAULT_IDENTITY_PATH="$ROOT/swarm.pem"
 
 SMALL_SWARM_CONTRACT="0x69C6e1D608ec64885E7b185d39b04B491a71768C"
 BIG_SWARM_CONTRACT="0x6947c6E196a48B77eFa9331EC1E3e45f3Ee5Fd58"
 
-# Will ignore any visible GPUs if set.
-CPU_ONLY=${CPU_ONLY:-""}
+export PUB_MULTI_ADDRS=${PUB_MULTI_ADDRS:-$DEFAULT_PUB_MULTI_ADDRS}
+export PEER_MULTI_ADDRS=${PEER_MULTI_ADDRS:-$DEFAULT_PEER_MULTI_ADDRS}
+export HOST_MULTI_ADDRS=${HOST_MULTI_ADDRS:-$DEFAULT_HOST_MULTI_ADDRS}
+export IDENTITY_PATH=${IDENTITY_PATH:-$DEFAULT_IDENTITY_PATH}
+export HF_HUB_DOWNLOAD_TIMEOUT=120
 
-# Set if successfully parsed from modal-login/temp-data/userData.json.
-ORG_ID=${ORG_ID:-""}
+# ========== User Inputs ==========
 
-GREEN_TEXT="\033[32m"
-BLUE_TEXT="\033[34m"
-RESET_TEXT="\033[0m"
+CONNECT_TO_TESTNET=true
+USE_BIG_SWARM=true
+PARAM_B=0.5
+HF_TOKEN="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"
 
-echo_green() {
-    echo -e "$GREEN_TEXT$1$RESET_TEXT"
-}
+echo "Using defaults:"
+echo "✅ Connect to testnet: $CONNECT_TO_TESTNET"
+echo "✅ Swarm: Math Hard (Big Swarm)"
+echo "✅ Parameter size: ${PARAM_B}B"
 
-echo_blue() {
-    echo -e "$BLUE_TEXT$1$RESET_TEXT"
-}
-
-ROOT_DIR="$(cd $(dirname ${BASH_SOURCE[0]}) && pwd)"
-
-# Function to clean up the server process upon exit
-cleanup() {
-    echo_green ">> Shutting down trainer..."
-
-    # Kill all processes belonging to this script's process group
-    kill -- -$$ || true
-
-    exit 0
-}
-
-trap cleanup EXIT
-
-echo -e "\033[38;5;224m"
-cat << "EOF"
-    ██████  ██            ███████ ██     ██  █████  ██████  ███    ███
-    ██   ██ ██            ██      ██     ██ ██   ██ ██   ██ ████  ████
-    ██████  ██      █████ ███████ ██  █  ██ ███████ ██████  ██ ████ ██
-    ██   ██ ██                 ██ ██ ███ ██ ██   ██ ██   ██ ██  ██  ██
-    ██   ██ ███████       ███████  ███ ███  ██   ██ ██   ██ ██      ██
-
-    From Gensyn
-
-EOF
-
-if [ "$USE_BIG_SWARM" = true ]; then
-    SWARM_CONTRACT="$BIG_SWARM_CONTRACT"
-else
-    SWARM_CONTRACT="$SMALL_SWARM_CONTRACT"
-fi
+# ========== Ethereum Wallet Setup ==========
 
 if [ "$CONNECT_TO_TESTNET" = true ]; then
-    # Run modal_login server.
-    echo "Please login to create an Ethereum Server Wallet"
-    cd modal-login
-    # Check if the yarn command exists; if not, install Yarn.
+    echo "🚀 Preparing Ethereum wallet setup..."
+    cd modal-login || exit 1
 
-    # Node.js + NVM setup
-    if ! command -v node > /dev/null 2>&1; then
-        echo "Node.js not found. Installing NVM and latest Node.js..."
-        export NVM_DIR="$HOME/.nvm"
-        if [ ! -d "$NVM_DIR" ]; then
-            curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
-        fi
-        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-        [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-        nvm install node
-    else
-        echo "Node.js is already installed: $(node -v)"
+    # Install Node.js and Yarn
+    if ! command -v node > /dev/null; then
+        echo "Installing Node.js..."
+        curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+        sudo apt-get install -y nodejs
     fi
 
-    if ! command -v yarn > /dev/null 2>&1; then
-        # Detect Ubuntu (including WSL Ubuntu) and install Yarn accordingly
-        if grep -qi "ubuntu" /etc/os-release 2> /dev/null || uname -r | grep -qi "microsoft"; then
-            echo "Detected Ubuntu or WSL Ubuntu. Installing Yarn via apt..."
-            curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add - 
-            echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
-            sudo apt update && sudo apt install -y yarn
-        else
-            echo "Yarn not found. Installing Yarn globally with npm (no profile edits)…"
-            npm install -g --silent yarn
-        fi
+    if ! command -v yarn > /dev/null; then
+        echo "Installing Yarn..."
+        npm install --global yarn
     fi
+
     yarn install
+    nohup yarn dev > ../modal-login.log 2>&1 &
+    echo "🌀 Login server started in background (manual access needed)"
+    
+    cd ..
 
-    # Assign dynamic port for each swarm
-    PORT=$((3000 + RANDOM % 1000))
-    echo "Starting modal-login server on port $PORT..."
-    yarn dev &  # Run yarn dev in background
-    SERVER_PID=$!
-    echo "Started server process: $SERVER_PID"
-    sleep 5
+    # Wait for user to log in
+    echo "👉 Please open the ngrok URL to log in"
+    
+    # Start ngrok
+    if ! command -v ngrok > /dev/null; then
+        echo "Downloading and installing ngrok..."
+        ARCH=$(uname -m)
+        OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 
-    # Try to open the URL in the default browser
-    if command -v xdg-open &> /dev/null; then
-        xdg-open http://localhost:$PORT || true
-        echo_green ">> Successfully opened http://localhost:$PORT."
-    else
-        echo ">> Failed to open http://localhost:$PORT. Please open it manually."
+        if [ "$ARCH" = "x86_64" ]; then
+            NGROK_ARCH="amd64"
+        elif [ "$ARCH" = "arm64" ] || [ "$ARCH" = "aarch64" ]; then
+            NGROK_ARCH="arm64"
+        else
+            echo "❌ Unsupported architecture: $ARCH"
+            exit 1
+        fi
+
+        wget -q "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-$OS-$NGROK_ARCH.tgz"
+        tar -xzf "ngrok-v3-stable-$OS-$NGROK_ARCH.tgz"
+        sudo mv ngrok /usr/local/bin/
+        rm "ngrok-v3-stable-$OS-$NGROK_ARCH.tgz"
     fi
 
-    cd ..
-    echo_green ">> Waiting for modal userData.json to be created..."
-    while [ ! -f "modal-login/temp-data/userData.json" ]; do
-        sleep 5  # Wait for 5 seconds before checking again
+    NGROK_TOKEN="2vIktq0KK4TBzkfFdk9zBMLtvVR_47EmaHeJJuUcwsmhEvRmF"
+    ngrok authtoken "$NGROK_TOKEN"
+
+    ngrok http 3000 > /dev/null &
+    NGROK_PID=$!
+    echo "🌀 ngrok started, waiting for tunnel..."
+
+    # Wait for tunnel to become active
+    sleep 10
+    FORWARDING_URL=""
+    for i in {1..5}; do
+        FORWARDING_URL=$(curl -s http://127.0.0.1:4040/api/tunnels | grep -o 'https://[^"]*' | head -n 1 || true)
+        if [ -n "$FORWARDING_URL" ]; then
+            break
+        fi
+        sleep 5
     done
-    echo "Found userData.json. Proceeding..."
+
+    if [ -z "$FORWARDING_URL" ]; then
+        echo "❌ Failed to retrieve ngrok tunnel URL."
+        exit 1
+    fi
+
+    echo "✅ Ngrok tunnel available: $FORWARDING_URL"
+    echo "👉 Please open the following URL to log in:"
+    echo "$FORWARDING_URL"
+
+    echo "⏳ Waiting for userData.json to be created..."
+    while [ ! -f "modal-login/temp-data/userData.json" ]; do
+        sleep 5
+    done
+    echo "✅ Found userData.json. Proceeding..."
 
     ORG_ID=$(awk 'BEGIN { FS = "\"" } !/^[ \t]*[{}]/ { print $(NF - 1); exit }' modal-login/temp-data/userData.json)
-    echo "Your ORG_ID is set to: $ORG_ID"
+    echo "✅ ORG_ID set to: $ORG_ID"
 
-    # Wait until the API key is activated by the client
-    echo "Waiting for API key to become activated..."
+    # Wait for API key activation
     while true; do
-        STATUS=$(curl -s "http://localhost:$PORT/api/get-api-key-status?orgId=$ORG_ID")
+        STATUS=$(curl -s "http://localhost:3000/api/get-api-key-status?orgId=$ORG_ID")
         if [[ "$STATUS" == "activated" ]]; then
-            echo "API key is activated! Proceeding..."
+            echo "✅ API key activated!"
             break
         else
-            echo "Waiting for API key to be activated..."
+            echo "⏳ Waiting for API key activation..."
             sleep 5
         fi
     done
 
-    ENV_FILE="$ROOT"/modal-login/.env
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        sed -i '' "3s/.*/SMART_CONTRACT_ADDRESS=$SWARM_CONTRACT/" "$ENV_FILE"
-    else
-        sed -i "3s/.*/SMART_CONTRACT_ADDRESS=$SWARM_CONTRACT/" "$ENV_FILE"
-    fi
+    sed -i "3s/.*/SMART_CONTRACT_ADDRESS=$BIG_SWARM_CONTRACT/" "$ROOT/modal-login/.env"
+else
+    ORG_ID=""
 fi
 
-echo_green ">> Getting requirements..."
+# ========== Install Requirements ==========
 
+echo "📦 Installing Python dependencies..."
 pip install --upgrade pip
-if [ -n "$CPU_ONLY" ] || ! command -v nvidia-smi &> /dev/null; then
-    pip install -r "$ROOT"/requirements-cpu.txt
+
+if [ -n "${CPU_ONLY:-}" ] || ! command -v nvidia-smi > /dev/null; then
+    pip install -r "$ROOT/requirements-cpu.txt"
     CONFIG_PATH="$ROOT/hivemind_exp/configs/mac/grpo-qwen-2.5-0.5b-deepseek-r1.yaml"
     GAME="gsm8k"
 else
-    pip install -r "$ROOT"/requirements-gpu.txt
+    pip install -r "$ROOT/requirements-gpu.txt"
     pip install flash-attn --no-build-isolation
 
     case "$PARAM_B" in
         32 | 72) CONFIG_PATH="$ROOT/hivemind_exp/configs/gpu/grpo-qwen-2.5-${PARAM_B}b-bnb-4bit-deepseek-r1.yaml" ;;
         0.5 | 1.5 | 7) CONFIG_PATH="$ROOT/hivemind_exp/configs/gpu/grpo-qwen-2.5-${PARAM_B}b-deepseek-r1.yaml" ;;
-        *) echo ">>> Please answer in [0.5, 1.5, 7, 32, 72]." ;;
+        *) echo "❌ Invalid parameter size."; exit 1 ;;
     esac
 
-    if [ "$USE_BIG_SWARM" = true ]; then
-        GAME="dapo"
-    else
-        GAME="gsm8k"
-    fi
+    GAME=$([ "$USE_BIG_SWARM" = true ] && echo "dapo" || echo "gsm8k")
 fi
 
-echo_green ">> Done!"
+# ========== Start Training ==========
 
-HUGGINGFACE_ACCESS_TOKEN=${HF_TOKEN:-"None"}
-
-echo_green ">> Good luck in the swarm!"
-echo_blue ">> Post about rl-swarm on X/twitter! --> https://tinyurl.com/swarmtweet"
-echo_blue ">> And remember to star the repo on GitHub! --> https://github.com/gensyn-ai/rl-swarm"
+echo "🚀 Starting training..."
 
 if [ -n "$ORG_ID" ]; then
     python -m hivemind_exp.gsm8k.train_single_gpu \
-        --hf_token "$HUGGINGFACE_ACCESS_TOKEN" \
+        --hf_token "$HF_TOKEN" \
         --identity_path "$IDENTITY_PATH" \
         --modal_org_id "$ORG_ID" \
-        --contract_address "$SWARM_CONTRACT" \
+        --contract_address "$BIG_SWARM_CONTRACT" \
         --config "$CONFIG_PATH" \
         --game "$GAME"
 else
     python -m hivemind_exp.gsm8k.train_single_gpu \
-        --hf_token "$HUGGINGFACE_ACCESS_TOKEN" \
+        --hf_token "$HF_TOKEN" \
         --identity_path "$IDENTITY_PATH" \
         --public_maddr "$PUB_MULTI_ADDRS" \
         --initial_peers "$PEER_MULTI_ADDRS" \
@@ -220,4 +177,14 @@ else
         --game "$GAME"
 fi
 
+# ========== Cleanup ==========
+
+cleanup() {
+    echo "🧹 Shutting down ngrok and login server..."
+    kill $NGROK_PID 2>/dev/null || true
+    pkill -f "yarn dev" 2>/dev/null || true
+    exit 0
+}
+
+trap cleanup INT
 wait
