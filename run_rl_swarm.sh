@@ -23,7 +23,7 @@ DEFAULT_PUB_MULTI_ADDRS=""
 PUB_MULTI_ADDRS=${PUB_MULTI_ADDRS:-$DEFAULT_PUB_MULTI_ADDRS}
 
 # Check if peer multi-address is given else set to default
-DEFAULT_PEER_MULTI_ADDRS="/ip4/38.101.215.13/tcp/30002/p2p/QmQ2gEXoPJg6iMBSUFWGzAabS2VhnzuS782Y637hGjfsRJ"
+DEFAULT_PEER_MULTI_ADDRS="/ip4/38.101.215.13/tcp/30002/p2p/QmQ2gEXoPJg6iMBSUFWGzAabS2VhnzuS782Y637hGjfsRJ" # gensyn coordinator node
 PEER_MULTI_ADDRS=${PEER_MULTI_ADDRS:-$DEFAULT_PEER_MULTI_ADDRS}
 
 # Check if host multi-address is given else set to default
@@ -31,13 +31,17 @@ DEFAULT_HOST_MULTI_ADDRS="/ip4/0.0.0.0/tcp/38331"
 HOST_MULTI_ADDRS=${HOST_MULTI_ADDRS:-$DEFAULT_HOST_MULTI_ADDRS}
 
 # Path to an RSA private key. If this path does not exist, a new key pair will be created.
+# Remove this file if you want a new PeerID.
 DEFAULT_IDENTITY_PATH="$ROOT"/swarm.pem
 IDENTITY_PATH=${IDENTITY_PATH:-$DEFAULT_IDENTITY_PATH}
 
 SMALL_SWARM_CONTRACT="0x69C6e1D608ec64885E7b185d39b04B491a71768C"
 BIG_SWARM_CONTRACT="0x6947c6E196a48B77eFa9331EC1E3e45f3Ee5Fd58"
 
+# Will ignore any visible GPUs if set.
 CPU_ONLY=${CPU_ONLY:-""}
+
+# Set if successfully parsed from modal-login/temp-data/userData.json.
 ORG_ID=${ORG_ID:-""}
 
 GREEN_TEXT="\033[32m"
@@ -58,10 +62,8 @@ ROOT_DIR="$(cd $(dirname ${BASH_SOURCE[0]}) && pwd)"
 cleanup() {
     echo_green ">> Shutting down trainer..."
 
-    # Kill background server if it exists
-    if [ -n "${SERVER_PID:-}" ]; then
-        kill "$SERVER_PID" 2>/dev/null || true
-    fi
+    # Kill all processes belonging to this script's process group
+    kill -- -$$ || true
 
     exit 0
 }
@@ -87,8 +89,10 @@ else
 fi
 
 if [ "$CONNECT_TO_TESTNET" = true ]; then
+    # Run modal_login server.
     echo "Please login to create an Ethereum Server Wallet"
     cd modal-login
+    # Check if the yarn command exists; if not, install Yarn.
 
     # Node.js + NVM setup
     if ! command -v node > /dev/null 2>&1; then
@@ -105,46 +109,49 @@ if [ "$CONNECT_TO_TESTNET" = true ]; then
     fi
 
     if ! command -v yarn > /dev/null 2>&1; then
+        # Detect Ubuntu (including WSL Ubuntu) and install Yarn accordingly
         if grep -qi "ubuntu" /etc/os-release 2> /dev/null || uname -r | grep -qi "microsoft"; then
             echo "Detected Ubuntu or WSL Ubuntu. Installing Yarn via apt..."
-            curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
+            curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add - 
             echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
             sudo apt update && sudo apt install -y yarn
         else
-            echo "Yarn not found. Installing Yarn globally with npm..."
+            echo "Yarn not found. Installing Yarn globally with npm (no profile edits)…"
             npm install -g --silent yarn
         fi
     fi
-
-    # Use separate Yarn cache folder to avoid conflicts
-    export YARN_CACHE_FOLDER="$ROOT/yarn_cache"
     yarn install
 
-    yarn dev > /dev/null 2>&1 &  # background
+    # Assign dynamic port for each swarm
+    PORT=$((3000 + RANDOM % 1000))
+    echo "Starting modal-login server on port $PORT..."
+    yarn dev &  # Run yarn dev in background
     SERVER_PID=$!
     echo "Started server process: $SERVER_PID"
     sleep 5
 
-    if open http://localhost:3000 2> /dev/null; then
-        echo_green ">> Successfully opened http://localhost:3000 in your default browser."
+    # Try to open the URL in the default browser
+    if command -v xdg-open &> /dev/null; then
+        xdg-open http://localhost:$PORT || true
+        echo_green ">> Successfully opened http://localhost:$PORT."
     else
-        echo ">> Failed to open http://localhost:3000. Please open it manually."
+        echo ">> Failed to open http://localhost:$PORT. Please open it manually."
     fi
 
     cd ..
-
     echo_green ">> Waiting for modal userData.json to be created..."
     while [ ! -f "modal-login/temp-data/userData.json" ]; do
-        sleep 5
+        sleep 5  # Wait for 5 seconds before checking again
     done
     echo "Found userData.json. Proceeding..."
 
     ORG_ID=$(awk 'BEGIN { FS = "\"" } !/^[ \t]*[{}]/ { print $(NF - 1); exit }' modal-login/temp-data/userData.json)
     echo "Your ORG_ID is set to: $ORG_ID"
 
+    # Wait until the API key is activated by the client
     echo "Waiting for API key to become activated..."
     while true; do
-        STATUS=$(curl -s "http://localhost:3000/api/get-api-key-status?orgId=$ORG_ID")
+        STATUS=$(curl -s "http://localhost:$PORT/api/get-api-key-status?orgId=$ORG_ID")
         if [[ "$STATUS" == "activated" ]]; then
             echo "API key is activated! Proceeding..."
             break
