@@ -43,7 +43,6 @@ ROOT_DIR="$(cd $(dirname ${BASH_SOURCE[0]}) && pwd)"
 
 cleanup() {
     echo_green ">> Shutting down trainer..."
-    rm -r $ROOT_DIR/modal-login/temp-data/*.json 2> /dev/null || true
     kill -- -$$ || true
     exit 0
 }
