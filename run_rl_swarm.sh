@@ -271,19 +271,20 @@ if [ -f "modal-login/temp-data/userData.json" ]; then
       fi
     fi
     
-    PORT_LINE=$(ss -ltnp | grep ":3000 ")
+    PORT_LINE=$(ss -ltnp | grep ":3001 ")
     if [ -n "$PORT_LINE" ]; then
       PID=$(echo "$PORT_LINE" | grep -oP 'pid=\K[0-9]+')
       if [ -n "$PID" ]; then
-        echo -e "${YELLOW}[!] Port 3000 is in use. Killing process: $PID${NC}"
+        echo -e "${YELLOW}[!] Port 3001 is in use. Killing process: $PID${NC}"
         kill -9 $PID
         sleep 2
       fi
     fi
-    
-    npm run dev > server.log 2>&1 &
+
+    npm run dev -- -p 3001 > server.log 2>&1 &
     SERVER_PID=$!
-    MAX_WAIT=30  
+    MAX_WAIT=30
+
     
     for ((i = 0; i < MAX_WAIT; i++)); do
         if grep -q "Local:        http://localhost:" server.log; then
@@ -327,19 +328,19 @@ else
       fi
     fi
     
-    PORT_LINE=$(ss -ltnp | grep ":3000 ")
+    PORT_LINE=$(ss -ltnp | grep ":3001 ")
     if [ -n "$PORT_LINE" ]; then
       PID=$(echo "$PORT_LINE" | grep -oP 'pid=\K[0-9]+')
       if [ -n "$PID" ]; then
-        echo -e "${YELLOW}[!] Port 3000 is in use. Killing process: $PID${NC}"
+        echo -e "${YELLOW}[!] Port 3001 is in use. Killing process: $PID${NC}"
         kill -9 $PID
         sleep 2
       fi
     fi
-    
-    npm run dev > server.log 2>&1 &
+
+    npm run dev -- -p 3001 > server.log 2>&1 &
     SERVER_PID=$!
-    MAX_WAIT=30  
+    MAX_WAIT=30
     
     for ((i = 0; i < MAX_WAIT; i++)); do
         if grep -q "Local:        http://localhost:" server.log; then
