@@ -271,17 +271,17 @@ if [ -f "modal-login/temp-data/userData.json" ]; then
       fi
     fi
     
-    PORT_LINE=$(ss -ltnp | grep ":3001 ")
+    PORT_LINE=$(ss -ltnp | grep ":PORT_CHANGE ")
     if [ -n "$PORT_LINE" ]; then
       PID=$(echo "$PORT_LINE" | grep -oP 'pid=\K[0-9]+')
       if [ -n "$PID" ]; then
-        echo -e "${YELLOW}[!] Port 3001 is in use. Killing process: $PID${NC}"
+        echo -e "${YELLOW}[!] Port PORT_CHANGE is in use. Killing process: $PID${NC}"
         kill -9 $PID
         sleep 2
       fi
     fi
 
-    npm run dev -- -p 3001 > server.log 2>&1 &
+    npm run dev -- -p PORT_CHANGE > server.log 2>&1 &
     SERVER_PID=$!
     MAX_WAIT=30
 
@@ -328,17 +328,17 @@ else
       fi
     fi
     
-    PORT_LINE=$(ss -ltnp | grep ":3001 ")
+    PORT_LINE=$(ss -ltnp | grep ":PORT_CHANGE ")
     if [ -n "$PORT_LINE" ]; then
       PID=$(echo "$PORT_LINE" | grep -oP 'pid=\K[0-9]+')
       if [ -n "$PID" ]; then
-        echo -e "${YELLOW}[!] Port 3001 is in use. Killing process: $PID${NC}"
+        echo -e "${YELLOW}[!] Port PORT_CHANGE is in use. Killing process: $PID${NC}"
         kill -9 $PID
         sleep 2
       fi
     fi
 
-    npm run dev -- -p 3001 > server.log 2>&1 &
+    npm run dev -- -p PORT_CHANGE > server.log 2>&1 &
     SERVER_PID=$!
     MAX_WAIT=30
     
@@ -548,7 +548,7 @@ echo -e "${GREEN}${BOLD}[✓] Successfully authenticated ngrok!${NC}"
 
     echo -e "${CYAN}${BOLD}[✓] Waiting for API key to become activated...${NC}"
     while true; do
-        STATUS=$(curl -s "http://localhost:3000/api/get-api-key-status?orgId=$ORG_ID")
+        STATUS=$(curl -s "http://localhost:PORT_CHANGE/api/get-api-key-status?orgId=$ORG_ID")
         if [[ "$STATUS" == "activated" ]]; then
             echo -e "${GREEN}${BOLD}[✓] Success! API key is activated! Proceeding...\n${NC}"
             break
