@@ -610,7 +610,7 @@ if [ -z "$CONFIG_PATH" ]; then
 fi
 
 
-HUGGINGFACE_ACCESS_TOKEN="2vIktq0KK4TBzkfFdk9zBMLtvVR_47EmaHeJJuUcwsmhEvRmF"
+HUGGINGFACE_ACCESS_TOKEN="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"
 
 
 echo -e "\n${GREEN}${BOLD}[✓] Good luck in the swarm! Your training session is about to begin.\n${NC}"
