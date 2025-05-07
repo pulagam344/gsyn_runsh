@@ -230,7 +230,7 @@ else
     echo -e "\n${GREEN}${BOLD}[✓] Running with GPU acceleration${NC}"
 fi
 
-USE_BIG_SWARM=false
+USE_BIG_SWARM=true
 
 if [ "$USE_BIG_SWARM" = true ]; then
     SWARM_CONTRACT="$BIG_SWARM_CONTRACT"
@@ -611,7 +611,7 @@ fi
 
 
 HUGGINGFACE_ACCESS_TOKEN="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"
-SWARM_CONTRACT="0x69C6e1D608ec64885E7b185d39b04B491a71768C"
+#SWARM_CONTRACT="0x69C6e1D608ec64885E7b185d39b04B491a71768C"
 
 echo -e "\n${GREEN}${BOLD}[✓] Good luck in the swarm! Your training session is about to begin.\n${NC}"
 [ "$(uname)" = "Darwin" ] && sed -i '' -E 's/(startup_timeout: *float *= *)[0-9.]+/\1120/' $(python3 -c "import hivemind.p2p.p2p_daemon as m; print(m.__file__)") || sed -i -E 's/(startup_timeout: *float *= *)[0-9.]+/\1120/' $(python3 -c "import hivemind.p2p.p2p_daemon as m; print(m.__file__)")
