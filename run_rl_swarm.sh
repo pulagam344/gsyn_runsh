@@ -237,7 +237,7 @@ if [ "$USE_BIG_SWARM" = true ]; then
 else
     SWARM_CONTRACT="$SMALL_SWARM_CONTRACT"
 fi
-PARAM_B=1.5
+PARAM_B=0.5
 
 cleanup() {
     echo -e "${YELLOW}${BOLD}[✓] Shutting down processes...${NC}"
