@@ -140,7 +140,7 @@ if [ "$CONNECT_TO_TESTNET" = true ]; then
 
     yarn install --immutable
     echo "Building server"
-    yarn build > "$ROOT/logs/yarn.log" 2>&1
+    PORT=PORT_CHANGE yarn build > "$ROOT/logs/yarn.log" 2>&1
     PORT=PORT_CHANGE yarn start >> "$ROOT/logs/yarn.log" 2>&1 & # Run in background and log output
 
     SERVER_PID=$!  # Store the process ID
