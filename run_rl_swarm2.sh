@@ -181,7 +181,7 @@ fi
 
 echo_green ">> Getting requirements..."
 
-pip install --upgrade pip
+#pip install --upgrade pip
 if [ -n "$CPU_ONLY" ] || ! command -v nvidia-smi &> /dev/null; then
     # CPU-only mode or no NVIDIA GPU found
     pip install -r "$ROOT"/requirements-cpu.txt
