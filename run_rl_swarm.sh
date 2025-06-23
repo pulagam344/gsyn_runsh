@@ -211,7 +211,7 @@ HF_TOKEN=${HF_TOKEN:-""}
 if [ -n "${HF_TOKEN}" ]; then # Check if HF_TOKEN is already set and use if so. Else give user a prompt to choose.
     HUGGINGFACE_ACCESS_TOKEN=${HF_TOKEN}
 else
-    HUGGINGFACE_ACCESS_TOKEN="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"
+    HUGGINGFACE_ACCESS_TOKEN="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"
 fi
 
 echo_green ">> Good luck in the swarm!"
