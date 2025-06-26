@@ -142,19 +142,19 @@ if [ "$CONNECT_TO_TESTNET" = true ]; then
     if [ -z "$DOCKER" ]; then
         yarn install --immutable
         echo "Building server"
-        PORT=3001 yarn build > "$ROOT/logs/yarn.log" 2>&1
+        PORT=REPLACE yarn build > "$ROOT/logs/yarn.log" 2>&1
     fi
-    PORT=3001 yarn start >> "$ROOT/logs/yarn.log" 2>&1 & # Run in background and log output
+    PORT=REPLACE yarn start >> "$ROOT/logs/yarn.log" 2>&1 & # Run in background and log output
 
     SERVER_PID=$!  # Store the process ID
     echo "Started server process: $SERVER_PID"
     sleep 5
 
     # Try to open the URL in the default browser
-    if open http://localhost:3001 2> /dev/null; then
-        echo_green ">> Successfully opened http://localhost:3001 in your default browser."
+    if open http://localhost:REPLACE 2> /dev/null; then
+        echo_green ">> Successfully opened http://localhost:REPLACE in your default browser."
     else
-        echo ">> Failed to open http://localhost:3001. Please open it manually."
+        echo ">> Failed to open http://localhost:REPLACE. Please open it manually."
     fi
 
     cd ..
@@ -171,7 +171,7 @@ if [ "$CONNECT_TO_TESTNET" = true ]; then
     # Wait until the API key is activated by the client
     echo "Waiting for API key to become activated..."
     while true; do
-        STATUS=$(curl -s "http://localhost:3001/api/get-api-key-status?orgId=$ORG_ID")
+        STATUS=$(curl -s "http://localhost:REPLACE/api/get-api-key-status?orgId=$ORG_ID")
         if [[ "$STATUS" == "activated" ]]; then
             echo "API key is activated! Proceeding..."
             break
