@@ -238,7 +238,8 @@ if [ -n "$DOCKER" ]; then
 fi
 
 echo_green ">> Done!"
-
+# Upgrade protobuf to version 6.31.0
+pip install --upgrade protobuf==6.31.0
 echo_green ">> Good luck in the swarm!"
 echo_blue ">> And remember to star the repo on GitHub! --> https://github.com/gensyn-ai/rl-swarm"
 
