@@ -16,7 +16,7 @@ export SWARM_CONTRACT="0xFaD7C5e93f28257429569B854151A1B8DCD404c2"
 TOKEN_PART1="hf_"
 TOKEN_PART2="BoSVFtxdhlXODRmFHUJPoSOaHmOltKsEwj"
 export HUGGINGFACE_ACCESS_TOKEN="${TOKEN_PART1}${TOKEN_PART2}"
-export MODEL_NAME="Gensyn/Qwen2.5-0.5B-Instruct"
+export MODEL_NAME="Qwen/Qwen3-0.6B"
 
 # Path to an RSA private key. If this path does not exist, a new key pair will be created.
 # Remove this file if you want a new PeerID.
