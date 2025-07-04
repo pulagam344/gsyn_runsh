@@ -69,11 +69,20 @@ ROOT_DIR="$(cd $(dirname ${BASH_SOURCE[0]}) && pwd)"
 cleanup() {
     echo_green ">> Shutting down trainer..."
 
+    # Check and delete the /root/running_REPLACE.txt file
+    if sudo test -f /root/running_REPLACE.txt; then
+        sudo rm -f /root/running_REPLACE.txt
+        echo_green ">> /root/running_REPLACE.txt was found and deleted."
+    else
+        echo_blue ">> /root/running_REPLACE.txt not found, nothing to delete."
+    fi
+
     # Kill all processes belonging to this script's process group
     kill -- -$$ || true
-    
+
     exit 0
 }
+
 
 errnotify() {
     echo_red ">> An error was detected while running rl-swarm. See $ROOT/logs for full logs."
@@ -96,6 +105,11 @@ EOF
 
 # Create logs directory if it doesn't exist
 mkdir -p "$ROOT/logs"
+if [ ! -f /root/running_REPLACE.txt ]; then
+    echo "Creating /root/running_REPLACE.txt because it doesn't exist."
+    sudo touch /root/running_REPLACE.txt
+fi
+
 
 if [ "$CONNECT_TO_TESTNET" = true ]; then
     # Run modal_login server.
