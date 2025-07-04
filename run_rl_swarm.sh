@@ -69,18 +69,11 @@ ROOT_DIR="$(cd $(dirname ${BASH_SOURCE[0]}) && pwd)"
 cleanup() {
     echo_green ">> Shutting down trainer..."
 
-    # Kill the specific server process if it exists
-    if [[ -n "$SERVER_PID" ]]; then
-        echo_green ">> Killing server PID: $SERVER_PID"
-        kill "$SERVER_PID" 2>/dev/null || true
-    fi
-
-    # Kill all processes in the current process group
-    kill -- -$$ 2>/dev/null || true
-
+    # Kill all processes belonging to this script's process group
+    kill -- -$$ || true
+    
     exit 0
 }
-
 
 errnotify() {
     echo_red ">> An error was detected while running rl-swarm. See $ROOT/logs for full logs."
