@@ -254,7 +254,7 @@ fi
 echo_green ">> Done!"
 # Upgrade protobuf to version 6.31.0
 pip install --upgrade protobuf==6.31.0
-sed -i 's|15|120|' /usr/local/lib/python3.11/dist-packages/hivemind/p2p/p2p_daemon.py
+#sed -i 's|15|120|' /usr/local/lib/python3.11/dist-packages/hivemind/p2p/p2p_daemon.py
 
 echo_green ">> Good luck in the swarm!"
 echo_blue ">> And remember to star the repo on GitHub! --> https://github.com/gensyn-ai/rl-swarm"
