@@ -200,32 +200,12 @@ fi
 
 echo_green ">> Getting requirements..."
 
-# Clone GenRL repository to user's working directory
-echo_green ">> Initializing and updating GenRL..."
-if [ ! -d "$ROOT/genrl-swarm" ]; then
-    git clone --depth=1 --branch "$GENRL_SWARM_TAG" https://github.com/gensyn-ai/genrl-swarm.git "$ROOT/genrl-swarm"
-else
-    # Check if we are on the correct tag
-    cd "$ROOT/genrl-swarm"
-    CURRENT_TAG=$(git describe --tags --exact-match 2>/dev/null || echo "unknown")
-    if [ "$CURRENT_TAG" != "$GENRL_SWARM_TAG" ]; then
-        echo_green ">> Updating genrl-swarm to tag $GENRL_SWARM_TAG..."
-        git fetch --tags
-        git checkout "$GENRL_SWARM_TAG"
-        git pull origin "$GENRL_SWARM_TAG"
-    fi
-    cd "$ROOT"
-fi
+# echo_green ">> Installing GenRL..."
+pip install gensyn-genrl==0.1.4
+pip install reasoning-gym>=0.1.20 # for reasoning gym env
+pip install trl # for grpo config, will be deprecated soon
+pip install hivemind@git+https://github.com/gensyn-ai/hivemind@639c964a8019de63135a2594663b5bec8e5356dd # We need the latest, 1.1.11 is broken
 
-echo_green ">> Installing GenRL."
-if [ -d "$ROOT/genrl-swarm" ]; then
-    cd "$ROOT/genrl-swarm"
-    pip install -e .[examples]
-    cd "$ROOT" 
-else
-    echo_red "Error: genrl-swarm submodule not found at $ROOT/genrl-swarm"
-    exit 1
-fi
 
 if [ ! -d "$ROOT/configs" ]; then
     mkdir "$ROOT/configs"
@@ -254,7 +234,7 @@ fi
 echo_green ">> Done!"
 # Upgrade protobuf to version 6.31.0
 pip install --upgrade protobuf==6.31.0
-#sed -i 's|15|120|' /usr/local/lib/python3.11/dist-packages/hivemind/p2p/p2p_daemon.py
+sed -i 's|15|120|' /usr/local/lib/python3.11/dist-packages/hivemind/p2p/p2p_daemon.py
 
 echo_green ">> Good luck in the swarm!"
 echo_blue ">> And remember to star the repo on GitHub! --> https://github.com/gensyn-ai/rl-swarm"
