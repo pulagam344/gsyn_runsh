@@ -94,7 +94,7 @@ trap errnotify ERR
 echo -e "\033[38;5;224m"
 cat << "EOF"
 
-    From Gensyn 1.1
+    From Gensyn 2.001
 
 EOF
 
@@ -105,40 +105,12 @@ if [ ! -f /root/running_REPLACE.txt ]; then
     sudo touch /root/running_REPLACE.txt
 fi
 
+#sed -i 's|false |true|' rgym_exp/config/rg-swarm.yaml
 
 if [ "$CONNECT_TO_TESTNET" = true ]; then
     # Run modal_login server.
     echo "Please login to create an Ethereum Server Wallet"
     cd modal-login
-    # Check if the yarn command exists; if not, install Yarn.
-
-    # Node.js + NVM setup
-    if ! command -v node > /dev/null 2>&1; then
-        echo "Node.js not found. Installing NVM and latest Node.js..."
-        export NVM_DIR="$HOME/.nvm"
-        if [ ! -d "$NVM_DIR" ]; then
-            curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
-        fi
-        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-        [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-        #nvm install node
-    else
-        echo "Node.js is already installed: $(node -v)"
-    fi
-
-    if ! command -v yarn > /dev/null 2>&1; then
-        # Detect Ubuntu (including WSL Ubuntu) and install Yarn accordingly
-        if grep -qi "ubuntu" /etc/os-release 2> /dev/null || uname -r | grep -qi "microsoft"; then
-            echo "Detected Ubuntu or WSL Ubuntu. Installing Yarn via apt..."
-            curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
-            echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
-            #sudo apt update && sudo apt install -y yarn
-        else
-            echo "Yarn not found. Installing Yarn globally with npm (no profile edits)…"
-            # This lands in $NVM_DIR/versions/node/<ver>/bin which is already on PATH
-            #npm install -g --silent yarn
-        fi
-    fi
 
     ENV_FILE="$ROOT"/modal-login/.env
     if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -193,14 +165,6 @@ if [ "$CONNECT_TO_TESTNET" = true ]; then
     done
 fi
 
-echo_green ">> Getting requirements..."
-
-# echo_green ">> Installing GenRL..."
-pip install gensyn-genrl==0.1.4
-pip install reasoning-gym>=0.1.20 # for reasoning gym env
-pip install trl # for grpo config, will be deprecated soon
-pip install hivemind@git+https://github.com/gensyn-ai/hivemind@639c964a8019de63135a2594663b5bec8e5356dd # We need the latest, 1.1.11 is broken
-
 
 if [ ! -d "$ROOT/configs" ]; then
     mkdir "$ROOT/configs"
@@ -228,9 +192,6 @@ fi
 
 echo_green ">> Done!"
 
-# Upgrade protobuf to version 6.31.0
-pip install --upgrade protobuf==6.31.0
-#sed -i 's|15|120|' /usr/local/lib/python3.11/dist-packages/hivemind/p2p/p2p_daemon.py
 
 echo_green ">> Good luck in the swarm!"
 echo_blue ">> And remember to star the repo on GitHub! --> https://github.com/gensyn-ai/rl-swarm"
