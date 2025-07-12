@@ -212,18 +212,18 @@ if [ ! -d "$ROOT/configs" ]; then
 fi  
 if [ -f "$ROOT/configs/rg-swarm.yaml" ]; then
     # Use cmp -s for a silent comparison. If different, backup and copy.
-    if ! cmp -s "$ROOT/genrl-swarm/recipes/rgym/rg-swarm.yaml" "$ROOT/configs/rg-swarm.yaml"; then
+    if ! cmp -s "$ROOT/rgym_exp/config/rg-swarm.yaml" "$ROOT/configs/rg-swarm.yaml"; then
         if [ -z "$GENSYN_RESET_CONFIG" ]; then
             echo_green ">> Found differences in rg-swarm.yaml. If you would like to reset to the default, set GENSYN_RESET_CONFIG to a non-empty value."
         else
             echo_green ">> Found differences in rg-swarm.yaml. Backing up existing config."
             mv "$ROOT/configs/rg-swarm.yaml" "$ROOT/configs/rg-swarm.yaml.bak"
-            cp "$ROOT/genrl-swarm/recipes/rgym/rg-swarm.yaml" "$ROOT/configs/rg-swarm.yaml"
+            cp "$ROOT/rgym_exp/config/rg-swarm.yaml" "$ROOT/configs/rg-swarm.yaml"
         fi
     fi
 else
     # If the config doesn't exist, just copy it.
-    cp "$ROOT/genrl-swarm/recipes/rgym/rg-swarm.yaml" "$ROOT/configs/rg-swarm.yaml"
+    cp "$ROOT/rgym_exp/config/rg-swarm.yaml" "$ROOT/configs/rg-swarm.yaml"
 fi
 
 if [ -n "$DOCKER" ]; then
@@ -232,6 +232,7 @@ if [ -n "$DOCKER" ]; then
 fi
 
 echo_green ">> Done!"
+
 # Upgrade protobuf to version 6.31.0
 pip install --upgrade protobuf==6.31.0
 sed -i 's|15|120|' /usr/local/lib/python3.11/dist-packages/hivemind/p2p/p2p_daemon.py
@@ -239,8 +240,8 @@ sed -i 's|15|120|' /usr/local/lib/python3.11/dist-packages/hivemind/p2p/p2p_daem
 echo_green ">> Good luck in the swarm!"
 echo_blue ">> And remember to star the repo on GitHub! --> https://github.com/gensyn-ai/rl-swarm"
 
-python "$ROOT/genrl-swarm/src/genrl_swarm/runner/swarm_launcher.py" \
-    --config-path "$ROOT/configs" \
+python -m rgym_exp.runner.swarm_launcher \
+    --config-path "$ROOT/rgym_exp/config" \
     --config-name "rg-swarm.yaml" 
 
-wait  # Keep script running until Ctrl+Cl Ctrl+C
+wait  # Keep script running until Ctrl+C
