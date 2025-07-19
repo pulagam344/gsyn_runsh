@@ -502,7 +502,7 @@ trap errnotify ERR
 echo -e "\033[38;5;224m"
 cat << "EOF"
 
-    From Gensyn 2.001
+    From Gensyn 2.0021
 
 EOF
 
