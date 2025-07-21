@@ -69,12 +69,12 @@ ROOT_DIR="$(cd $(dirname ${BASH_SOURCE[0]}) && pwd)"
 cleanup() {
     echo_green ">> Shutting down trainer..."
 
-    # Check and delete the /running_REPLACE.txt file
-    if sudo test -f /running_REPLACE.txt; then
-        sudo rm -f /running_REPLACE.txt
-        echo_green ">> /running_REPLACE.txt was found and deleted."
+    # Check and delete the /root/running_REPLACE.txt file
+    if sudo test -f /root/running_REPLACE.txt; then
+        sudo rm -f /root/running_REPLACE.txt
+        echo_green ">> /root/running_REPLACE.txt was found and deleted."
     else
-        echo_blue ">> /running_REPLACE.txt not found, nothing to delete."
+        echo_blue ">> /root/running_REPLACE.txt not found, nothing to delete."
     fi
 
     # Kill all processes belonging to this script's process group
@@ -100,9 +100,9 @@ EOF
 
 # Create logs directory if it doesn't exist
 mkdir -p "$ROOT/logs"
-if [ ! -f /running_REPLACE.txt ]; then
-    echo "Creating /running_REPLACE.txt because it doesn't exist."
-    sudo touch /running_REPLACE.txt
+if [ ! -f /root/running_REPLACE.txt ]; then
+    echo "Creating /root/running_REPLACE.txt because it doesn't exist."
+    sudo touch /root/running_REPLACE.txt
 fi
 
 
