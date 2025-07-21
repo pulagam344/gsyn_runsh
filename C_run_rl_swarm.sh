@@ -16,7 +16,7 @@ export SWARM_CONTRACT="0xFaD7C5e93f28257429569B854151A1B8DCD404c2"
 TOKEN_PART1="hf_"
 TOKEN_PART2="BoSVFtxdhlXODRmFHUJPoSOaHmOltKsEwj"
 export HUGGINGFACE_ACCESS_TOKEN="${TOKEN_PART1}${TOKEN_PART2}"
-export MODEL_NAME="Qwen/Qwen3-0.6B"
+export MODEL_NAME="Gensyn/Qwen2.5-0.5B-Instruct"
 
 # Path to an RSA private key. If this path does not exist, a new key pair will be created.
 # Remove this file if you want a new PeerID.
@@ -69,12 +69,12 @@ ROOT_DIR="$(cd $(dirname ${BASH_SOURCE[0]}) && pwd)"
 cleanup() {
     echo_green ">> Shutting down trainer..."
 
-    # Check and delete the /home/gsynpeer/running_REPLACE.txt file
-    if sudo test -f /home/gsynpeer/running_REPLACE.txt; then
-        sudo rm -f /home/gsynpeer/running_REPLACE.txt
-        echo_green ">> /home/gsynpeer/running_REPLACE.txt was found and deleted."
+    # Check and delete the /root/running_REPLACE.txt file
+    if sudo test -f /root/running_REPLACE.txt; then
+        sudo rm -f /root/running_REPLACE.txt
+        echo_green ">> /root/running_REPLACE.txt was found and deleted."
     else
-        echo_blue ">> /home/gsynpeer/running_REPLACE.txt not found, nothing to delete."
+        echo_blue ">> /root/running_REPLACE.txt not found, nothing to delete."
     fi
 
     # Kill all processes belonging to this script's process group
@@ -94,18 +94,17 @@ trap errnotify ERR
 echo -e "\033[38;5;224m"
 cat << "EOF"
 
-    From Gensyn 2.001
+    Gensyn { C }
 
 EOF
 
 # Create logs directory if it doesn't exist
 mkdir -p "$ROOT/logs"
-if [ ! -f /home/gsynpeer/running_REPLACE.txt ]; then
-    echo "Creating /home/gsynpeer/running_REPLACE.txt because it doesn't exist."
-    sudo touch /home/gsynpeer/running_REPLACE.txt
+if [ ! -f /root/running_REPLACE.txt ]; then
+    echo "Creating /root/running_REPLACE.txt because it doesn't exist."
+    sudo touch /root/running_REPLACE.txt
 fi
 
-#sed -i 's|false |true|' rgym_exp/config/rg-swarm.yaml
 
 if [ "$CONNECT_TO_TESTNET" = true ]; then
     # Run modal_login server.
