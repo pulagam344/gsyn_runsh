@@ -18,14 +18,8 @@ TOKEN_PART2="BoSVFtxdhlXODRmFHUJPoSOaHmOltKsEwj"
 export HUGGINGFACE_ACCESS_TOKEN="${TOKEN_PART1}${TOKEN_PART2}"
 export MODEL_NAME="Gensyn/Qwen2.5-0.5B-Instruct"
 
-export HYDRA_FULL_ERROR=1
-export PYTORCH_CUDA_ALLOC_CONF='expandable_segments:True'
-export TPU_NAME=""
-export XRT_TPU_CONFIG=""
-export TF_XLA_FLAGS="--tf_xla_enable_xla_devices=false"
 export CUDA_VISIBLE_DEVICES=""
 export CPU_ONLY=1
-export ACCELERATE_DEVICE=cpu
 
 # Path to an RSA private key. If this path does not exist, a new key pair will be created.
 # Remove this file if you want a new PeerID.
@@ -50,7 +44,7 @@ if [ -n "$DOCKER" ]; then
 fi
 
 # Will ignore any visible GPUs if set.
-CPU_ONLY=${CPU_ONLY:-"1"}
+CPU_ONLY=${CPU_ONLY:-""}
 
 # Set if successfully parsed from modal-login/temp-data/userData.json.
 ORG_ID=${ORG_ID:-""}
