@@ -18,6 +18,16 @@ TOKEN_PART2="BoSVFtxdhlXODRmFHUJPoSOaHmOltKsEwj"
 export HUGGINGFACE_ACCESS_TOKEN="${TOKEN_PART1}${TOKEN_PART2}"
 export MODEL_NAME="Gensyn/Qwen2.5-0.5B-Instruct"
 
+export HYDRA_FULL_ERROR=1
+export PYTORCH_CUDA_ALLOC_CONF='expandable_segments:True'
+export TPU_NAME=""
+export XRT_TPU_CONFIG=""
+export TF_XLA_FLAGS="--tf_xla_enable_xla_devices=false"
+export CUDA_VISIBLE_DEVICES=""
+export CPU_ONLY=0
+export ACCELERATE_DEVICE=cpu
+export XLA_FLAGS=--xla_cpu_only
+
 # Path to an RSA private key. If this path does not exist, a new key pair will be created.
 # Remove this file if you want a new PeerID.
 DEFAULT_IDENTITY_PATH="$ROOT"/swarm.pem
