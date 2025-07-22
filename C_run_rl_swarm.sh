@@ -24,7 +24,7 @@ export TPU_NAME=""
 export XRT_TPU_CONFIG=""
 export TF_XLA_FLAGS="--tf_xla_enable_xla_devices=false"
 export CUDA_VISIBLE_DEVICES=""
-export CPU_ONLY=0
+export CPU_ONLY=1
 export ACCELERATE_DEVICE=cpu
 export XLA_FLAGS=--xla_cpu_only
 
@@ -51,7 +51,7 @@ if [ -n "$DOCKER" ]; then
 fi
 
 # Will ignore any visible GPUs if set.
-CPU_ONLY=${CPU_ONLY:-"0"}
+CPU_ONLY=${CPU_ONLY:-"1"}
 
 # Set if successfully parsed from modal-login/temp-data/userData.json.
 ORG_ID=${ORG_ID:-""}
