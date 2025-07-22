@@ -51,7 +51,7 @@ if [ -n "$DOCKER" ]; then
 fi
 
 # Will ignore any visible GPUs if set.
-CPU_ONLY=${CPU_ONLY:-""}
+CPU_ONLY=${CPU_ONLY:-"0"}
 
 # Set if successfully parsed from modal-login/temp-data/userData.json.
 ORG_ID=${ORG_ID:-""}
