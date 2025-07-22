@@ -26,7 +26,6 @@ export TF_XLA_FLAGS="--tf_xla_enable_xla_devices=false"
 export CUDA_VISIBLE_DEVICES=""
 export CPU_ONLY=1
 export ACCELERATE_DEVICE=cpu
-export XLA_FLAGS=--xla_cpu_only
 
 # Path to an RSA private key. If this path does not exist, a new key pair will be created.
 # Remove this file if you want a new PeerID.
