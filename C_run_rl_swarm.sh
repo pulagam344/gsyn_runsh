@@ -21,7 +21,6 @@ export MODEL_NAME="Gensyn/Qwen2.5-0.5B-Instruct"
 
 export CUDA_VISIBLE_DEVICES=""
 export CPU_ONLY=1
-pip install --upgrade protobuf==6.31.1
 
 # Path to an RSA private key. If this path does not exist, a new key pair will be created.
 # Remove this file if you want a new PeerID.
