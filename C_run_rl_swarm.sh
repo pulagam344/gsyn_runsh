@@ -1,23 +1,3 @@
-# #!/bin/bash
-
-# set -euo pipefail
-
-# # General arguments
-# ROOT=$PWD
-
-# GENRL_SWARM_TAG="v0.1.1"
-
-# export IDENTITY_PATH
-# export GENSYN_RESET_CONFIG
-# export CONNECT_TO_TESTNET=true
-# export ORG_ID
-# export HF_HUB_DOWNLOAD_TIMEOUT=120  # 2 minutes
-# export SWARM_CONTRACT="0xFaD7C5e93f28257429569B854151A1B8DCD404c2"
-# export HUGGINGFACE_ACCESS_TOKEN="None"
-# TOKEN_PART1="hf_"
-# TOKEN_PART2="BoSVFtxdhlXODRmFHUJPoSOaHmOltKsEwj"
-# export HUGGINGFACE_ACCESS_TOKEN="${TOKEN_PART1}${TOKEN_PART2}"
-
 #!/usr/bin/env bash
 
 set -euo pipefail
@@ -138,10 +118,13 @@ if [ "$CONNECT_TO_TESTNET" = true ]; then
     ENV_FILE="$ROOT"/modal-login/.env
     if [[ "$OSTYPE" == "darwin"* ]]; then
         # macOS version
-        sed -i '' "3s/.*/SMART_CONTRACT_ADDRESS=$SWARM_CONTRACT/" "$ENV_FILE"
+        sed -i '' "3s/.*/SWARM_CONTRACT_ADDRESS=$SWARM_CONTRACT/" "$ENV_FILE"
+        sed -i '' "4s/.*/PRG_CONTRACT_ADDRESS=$PRG_CONTRACT/" "$ENV_FILE"
+
     else
         # Linux version
-        sed -i "3s/.*/SMART_CONTRACT_ADDRESS=$SWARM_CONTRACT/" "$ENV_FILE"
+        sed -i "3s/.*/SWARM_CONTRACT_ADDRESS=$SWARM_CONTRACT/" "$ENV_FILE"
+        sed -i "4s/.*/PRG_CONTRACT_ADDRESS=$PRG_CONTRACT/" "$ENV_FILE"
     fi
 
     # Docker image already builds it, no need to again.
