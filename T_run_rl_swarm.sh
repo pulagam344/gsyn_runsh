@@ -1,11 +1,12 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -euo pipefail
 
 # General arguments
 ROOT=$PWD
 
-GENRL_SWARM_TAG="v0.1.1"
+# GenRL Swarm version to use
+GENRL_TAG="0.1.6"
 
 export IDENTITY_PATH
 export GENSYN_RESET_CONFIG
@@ -13,11 +14,13 @@ export CONNECT_TO_TESTNET=true
 export ORG_ID
 export HF_HUB_DOWNLOAD_TIMEOUT=120  # 2 minutes
 export SWARM_CONTRACT="0xFaD7C5e93f28257429569B854151A1B8DCD404c2"
+export PRG_CONTRACT="0x51D4db531ae706a6eC732458825465058fA23a35"
 export HUGGINGFACE_ACCESS_TOKEN="None"
+export PRG_GAME=true
+export MODEL_NAME="Gensyn/Qwen2.5-0.5B-Instruct"
 # TOKEN_PART1="hf_"
 # TOKEN_PART2="BoSVFtxdhlXODRmFHUJPoSOaHmOltKsEwj"
 # export HUGGINGFACE_ACCESS_TOKEN="${TOKEN_PART1}${TOKEN_PART2}"
-export MODEL_NAME="Gensyn/Qwen2.5-0.5B-Instruct"
 
 export CUDA_VISIBLE_DEVICES=""
 export CPU_ONLY=1
