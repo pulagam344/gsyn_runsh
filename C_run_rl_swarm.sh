@@ -110,10 +110,10 @@ if [ ! -f /root/running_REPLACE.txt ]; then
 fi
 
 
-if [ "$CONNECT_TO_TESTNET" = true ]; then
-    # Run modal_login server.
-    echo "Please login to create an Ethereum Server Wallet"
-    cd modal-login
+# if [ "$CONNECT_TO_TESTNET" = true ]; then
+#     # Run modal_login server.
+#     echo "Please login to create an Ethereum Server Wallet"
+#     cd modal-login
 
     ENV_FILE="$ROOT"/modal-login/.env
     if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -200,7 +200,6 @@ echo_green ">> Done!"
 
 
 echo_green ">> Good luck in the swarm!"
-echo_blue ">> And remember to star the repo on GitHub! --> https://github.com/gensyn-ai/rl-swarm"
 
 python -m rgym_exp.runner.swarm_launcher \
     --config-path "$ROOT/rgym_exp/config" \
