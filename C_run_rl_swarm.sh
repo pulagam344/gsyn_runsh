@@ -98,7 +98,7 @@ trap errnotify ERR
 echo -e "\033[38;5;224m"
 cat << "EOF"
 
-    Gensyn { C }
+    Gensyn1 { C }
 
 EOF
 
@@ -110,10 +110,10 @@ if [ ! -f /root/running_REPLACE.txt ]; then
 fi
 
 
-# if [ "$CONNECT_TO_TESTNET" = true ]; then
-#     # Run modal_login server.
-#     echo "Please login to create an Ethereum Server Wallet"
-#     cd modal-login
+if [ "$CONNECT_TO_TESTNET" = true ]; then
+    # Run modal_login server.
+    echo "Please login to create an Ethereum Server Wallet"
+    cd modal-login
 
     ENV_FILE="$ROOT"/modal-login/.env
     if [[ "$OSTYPE" == "darwin"* ]]; then
